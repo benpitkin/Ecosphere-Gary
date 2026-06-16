@@ -1,35 +1,61 @@
 # Design decisions
 
-Carried over from the ecosphere-core design-agent work. These are encoded as
-typed constants in [`src/config/decisions.ts`](./src/config/decisions.ts) and
-verified by `src/config/decisions.test.ts`, so the code and this document stay
-in sync.
+The authoritative product brief lives in [`CLAUDE.md`](./CLAUDE.md) (read it first).
+This file records how those rules are encoded in code. The key constants live in
+[`src/config/decisions.ts`](./src/config/decisions.ts) and are verified by
+`src/config/decisions.test.ts`, so code and docs stay in sync.
 
-## 1. Active reasoning layer
+## 1. Active (reactive/observational) reasoning layer
 
-Gary's quoting flow is driven by an **active** reasoning layer — the LLM
-actively reasons over customer/site inputs and the BOM rather than acting as a
-passive text generator. The model defaults to the latest, most capable model
-and is overridable via the `ANTHROPIC_MODEL` environment variable.
+Gary's brain is a Claude reasoning layer that wraps a deterministic maths spine.
+It is **reactive and observational**: it monitors customer comms, reads intent, and
+writes the per-option justification — it never runs or overrides the maths. Model
+defaults to the latest, most capable model, overridable via `ANTHROPIC_MODEL`.
 
-## 2. Fixed three options at 40 / 45 / 50
+## 2. Three fixed options at 40 / 45 / 50 °C
 
-Customers are always presented **exactly three** options. The tiers are
-**fixed** (not dynamically generated) at the **40 / 45 / 50** levels agreed in
-the design-agent work.
+Always three options — **Eco 40 °C**, **Sweet spot 45 °C** (default), **Budget
+50 °C** — modelled from a single Spruce heat loss. Lower flow temp → larger
+emitters → higher capital but higher SCOP (lower bills); higher flow temp → the
+reverse. This trade-off is what the customer chooses on. No per-property variation
+in the temps.
 
-## 3. BOM-quantities / Core-prices ownership split
+## 3. Design owned by Gary, prices owned by Core
 
-- **Gary owns BOM _quantities_** — how many of each line item a system needs.
-- **Ecosphere Core owns _prices_** — Gary never hard-codes or persists its own
-  prices; it requests them from Core at quote time.
+Gary produces the **design** (sized emitters, matched heat pump, MCS031 per option
+— the quantities/kit). EcoSphere **Core** owns **pricing**: Gary never hard-codes or
+persists prices. Ben checks the options, locks one in, and Core attaches pricing to
+build the proposal.
 
-This boundary is reflected in `src/lib/bom.ts` (quantities, no prices) and
-`src/lib/corePrices.ts` (priced lines, sourced from Core).
+## 4. Deterministic spine, LLM around it
+
+The calc engine is pure, tested TypeScript with **no LLM in the maths** (emitter
+sizing at ΔT 5 °C, heat-pump matching, MCS031). It is built and proven against the
+3 Orchard Close golden fixture **before** the LLM layer is wired — if the maths is
+wrong, the LLM just produces confident wrong options.
+
+## 5. Stable, versioned data contracts
+
+Two zod objects are the interface everything depends on, changed only with a
+version bump:
+
+- [`SurveyObject`](./src/contracts/survey.ts) — normalised survey input
+  (format-independent: PDF today, API tomorrow).
+- [`DesignResult`](./src/contracts/design.ts) — engine output (the three options,
+  recommendation, review flags, audit trace).
+
+`POST /api/design` is the entry point Core calls: `SurveyObject` in →
+`DesignResult` out.
+
+## 6. Knowledge base from day one
+
+A `knowledge_base` table with a **pgvector** embedding column is created empty in
+Phase 0 (`supabase/migrations/0002_pgvector_knowledge_base.sql`) and populated in
+Phase 5, so the reasoning layer can ground itself in EcoSphere's rules.
 
 ---
 
-> **Note on provenance:** this Phase 0 scaffold was built from a summary of the
-> design-agent decisions, as the source repo/spec was not available in the
-> session that created it. If the canonical ecosphere-core spec differs, treat
-> it as authoritative and update this file plus `src/config/decisions.ts`.
+> **Provenance:** these decisions are transcribed from EcoSphere's
+> `ecosphere_proposal_engine_spec` and the `CLAUDE.md` orientation file. If those
+> sources change, they are authoritative — update `CLAUDE.md` and
+> `src/config/decisions.ts` together.

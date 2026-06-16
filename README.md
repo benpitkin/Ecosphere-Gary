@@ -1,16 +1,31 @@
-# Gary
+# Gary — EcoSphere Heat Pump Design Agent
 
-Gary is Ecosphere Energy's quoting and system-design assistant. This repository
-currently contains the **Phase 0 scaffold**: a runnable Next.js + TypeScript +
-Supabase foundation with CI, plus the architectural decisions encoded as typed
-constants so later phases build on solid ground.
+Gary takes a completed **Spruce** survey (PDF) and produces **three compliant,
+costed design options at flow temps 40 / 45 / 50 °C** (with an MCS031 performance
+estimate per option), ready for Ben to check and pull into a **Core** proposal. It
+is a standalone, internal (non-customer-facing) service consumed by Core over
+HTTPS.
+
+> **Read [`CLAUDE.md`](./CLAUDE.md) first** — it is the single source of truth for
+> the product rules, architecture and build phases.
+
+This repository currently contains the **Phase 0 scaffold**: the versioned data
+contracts, the `POST /api/design` surface, the Supabase + pgvector knowledge-base
+infra, and properly-framed module stubs (ingestion / engine / reasoning / RAG /
+core), all under CI.
 
 ## Stack
 
-- **Next.js** (App Router) + **React** + **TypeScript**
-- **Supabase** for data/auth (project provisioned in a later step)
+- **Next.js** (App Router) + **React** + **TypeScript**, **zod** for contracts
+- **Supabase** (Postgres + **pgvector** for the RAG knowledge base)
 - **Vitest** for tests, **ESLint** (`next/core-web-vitals`) for lint
 - **GitHub Actions** CI: lint → typecheck → test → build
+
+## API
+
+`POST /api/design` — `SurveyObject` in → `DesignResult` out. Phase 0 validates the
+input against the contract and returns `501` until the calc engine (Phase 3) lands.
+`GET /api/health` reports phase and which integrations are wired.
 
 ## Run locally
 
@@ -70,6 +85,15 @@ tests in `src/config/decisions.test.ts`.
 
 ## Roadmap
 
-- **Phase 0 (this repo):** scaffold, CI, decisions encoded as code.
-- **Next:** provision Gary's own Supabase + Vercel projects and wire env.
-- **Later:** implement the active reasoning layer, BOM sizing, and Core pricing.
+| Phase | Deliverable                                                          |
+| ----- | ------------------------------------------------------------------- |
+| 0     | Scaffold: contracts, `/api/design`, Supabase + empty pgvector, stubs |
+| 1     | Wrap Spruce auth / estimates / jobs                                  |
+| 2     | Spruce PDF parser → `SurveyObject` (golden fixture: 3 Orchard Close) |
+| 3     | Deterministic calc engine (emitter sizing + MCS031), tested         |
+| 4     | Claude reasoning layer: monitor comms → intent → justifications      |
+| 5     | Populate the knowledge base (infra built in Phase 0)                |
+| 6     | Core integration: hand off the three options for proposal           |
+
+**Sequencing:** build and prove the calc engine (Phase 3) against the golden
+fixture before wiring the LLM layer (Phase 4). See `CLAUDE.md`.

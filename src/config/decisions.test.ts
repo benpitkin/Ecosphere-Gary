@@ -1,39 +1,63 @@
 import { describe, it, expect } from "vitest";
 import {
-  OPTION_TIERS,
+  OPTIONS,
   OPTION_COUNT,
-  REASONING,
+  FLOW_TEMPS_C,
+  DEFAULT_OPTION,
+  EMITTER_SIZING,
+  meanWaterTempC,
+  HEAT_PUMP_MATCH,
+  TECHNICAL_DEFAULTS,
   OWNERSHIP,
+  REASONING,
 } from "@/config/decisions";
-import { resolveModel } from "@/lib/reasoning";
 
-describe("Phase 0 design decisions", () => {
-  it("offers exactly three fixed option tiers at 40/45/50", () => {
+describe("EcoSphere design rules", () => {
+  it("always offers exactly three options at 40/45/50 °C", () => {
     expect(OPTION_COUNT).toBe(3);
-    expect(OPTION_TIERS).toEqual([40, 45, 50]);
+    expect(OPTIONS.map((o) => o.flowTempC)).toEqual([40, 45, 50]);
+    expect(FLOW_TEMPS_C).toEqual([40, 45, 50]);
   });
 
-  it("uses an active reasoning layer", () => {
-    expect(REASONING.mode).toBe("active");
+  it("orders options eco → sweet_spot → budget with sweet_spot as default", () => {
+    expect(OPTIONS.map((o) => o.key)).toEqual(["eco", "sweet_spot", "budget"]);
+    expect(DEFAULT_OPTION).toBe("sweet_spot");
   });
 
-  it("splits ownership: Gary owns BOM quantities, Core owns prices", () => {
-    expect(OWNERSHIP.bomQuantities).toBe("gary");
+  it("captures the capital/radiator trade-off direction", () => {
+    const eco = OPTIONS[0];
+    const budget = OPTIONS[2];
+    expect(eco.capitalRank).toBe("highest");
+    expect(eco.radiators).toBe("largest");
+    expect(budget.capitalRank).toBe("lowest");
+    expect(budget.radiators).toBe("smallest");
+  });
+
+  it("uses ΔT 5 °C and computes mean water temp as flow − 2.5", () => {
+    expect(EMITTER_SIZING.deltaTC).toBe(5);
+    expect(EMITTER_SIZING.demandCoverage).toBe(1.0);
+    expect(meanWaterTempC(45)).toBe(42.5);
+    expect(meanWaterTempC(40)).toBe(37.5);
+  });
+
+  it("requires heat-pump cover ≥ 100 % of design heat loss", () => {
+    expect(HEAT_PUMP_MATCH.minCoverRatio).toBe(1.0);
+    expect(HEAT_PUMP_MATCH.oversizeFlagRatio).toBeGreaterThan(1.0);
+  });
+
+  it("encodes the EcoSphere technical defaults", () => {
+    expect(TECHNICAL_DEFAULTS.heatPumps).toContain("Vaillant aroTHERM");
+    expect(TECHNICAL_DEFAULTS.heatPumps).toContain("Grant");
+    expect(TECHNICAL_DEFAULTS.radiators).toBe("Stelrad");
+    expect(TECHNICAL_DEFAULTS.primaryRunMetres).toBe(10);
+  });
+
+  it("splits ownership: Gary owns design, Core owns prices", () => {
+    expect(OWNERSHIP.design).toBe("gary");
     expect(OWNERSHIP.prices).toBe("core");
   });
 
-  it("defaults the reasoning model when ANTHROPIC_MODEL is unset", () => {
-    const original = process.env.ANTHROPIC_MODEL;
-    delete process.env.ANTHROPIC_MODEL;
-    expect(resolveModel()).toBe(REASONING.defaultModel);
-    if (original !== undefined) process.env.ANTHROPIC_MODEL = original;
-  });
-
-  it("honours an explicit ANTHROPIC_MODEL override", () => {
-    const original = process.env.ANTHROPIC_MODEL;
-    process.env.ANTHROPIC_MODEL = "some-other-model";
-    expect(resolveModel()).toBe("some-other-model");
-    if (original === undefined) delete process.env.ANTHROPIC_MODEL;
-    else process.env.ANTHROPIC_MODEL = original;
+  it("uses a reactive/observational reasoning layer", () => {
+    expect(REASONING.mode).toBe("reactive-observational");
   });
 });
