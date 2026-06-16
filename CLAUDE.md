@@ -144,7 +144,7 @@ which the parser turns into a `SurveyObject`.
 
 | Phase | Deliverable                                                                  | Status      |
 | ----- | --------------------------------------------------------------------------- | ----------- |
-| 0     | Scaffold: repo, schemas, Supabase (+ empty pgvector), Vercel, stubs         | IN PROGRESS |
+| 0     | Scaffold: repo, schemas, Supabase (+ empty pgvector), Vercel, stubs         | CODE DONE — cloud Supabase/Vercel pending |
 | 1     | Wrap Spruce auth / estimates / jobs                                          | not started |
 | 2     | Spruce PDF parser → SurveyObject (golden fixture: 3 Orchard Close)          | not started |
 | 3     | Deterministic calc engine (emitter sizing + MCS031), tested                 | not started |
@@ -199,13 +199,19 @@ bump.
 
 ## Status
 
-- **Current phase:** Phase 0 — in progress (scaffold being completed to spec).
-- **Last session:** Imported this orientation file into the repo and brought the
-  Phase 0 scaffold in line with the spec — added the versioned `SurveyObject` /
-  `DesignResult` zod contracts, the `POST /api/design` route (validates input,
-  returns 501 until Phase 3), stubbed ingestion (PDF adapter) / calc engine /
-  reasoning / RAG modules, and a Supabase migration enabling **pgvector** with an
-  empty `knowledge_base` table. CI green (lint, typecheck, test, build).
+- **Current phase:** Phase 0 — **code complete and merged to `main`**; only cloud
+  provisioning (Supabase Pro + Vercel) remains, and both are blocked on Ben.
+- **Last session:** Imported this orientation file and brought the Phase 0 scaffold
+  in line with the spec — versioned `SurveyObject` / `DesignResult` zod contracts
+  (with the three-option invariant enforced), the `POST /api/design` route
+  (validates input, returns 501 until Phase 3), stubbed ingestion (PDF adapter) /
+  calc engine / reasoning / RAG / core modules, and a Supabase migration enabling
+  **pgvector** with an empty `knowledge_base` table. Merged via PRs #1, #2, #3.
+  CI green (lint, typecheck, test, build); security review clean; one code-review
+  finding (contract strictness) fixed.
+- **Blocked on Ben:** (a) Supabase is on the free 2-project cap (both slots in use:
+  main ops DB + Core) — Gary's own hosted DB needs a Pro upgrade; (b) Vercel deploy
+  needs a token or a one-click git import of the repo.
 - **Golden fixture:** 3 Orchard Close, Ottery St. Mary heat loss report (5.65 kW,
   13 rooms, Vaillant aroTHERM pro 7 kW, SCOP 4.13 @ 45 °C, 45 °C flow, 9 new
   radiators + UFH).
