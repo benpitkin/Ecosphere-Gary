@@ -91,15 +91,45 @@ export const AuditEntry = z.object({
 });
 export type AuditEntry = z.infer<typeof AuditEntry>;
 
-export const DesignResult = z.object({
-  version: z.literal(DESIGN_RESULT_VERSION),
-  /** Exactly three options, in eco → sweet_spot → budget order. */
-  options: z.array(DesignOption).length(3),
-  /** Which option the engine recommends as the default (spec: sweet_spot). */
-  recommended: OptionKey,
-  reviewFlags: z.array(ReviewFlag).default([]),
-  auditTrace: z.array(AuditEntry).default([]),
-});
+/** The required (key, flowTemp) identity of the three options, in order. */
+const REQUIRED_OPTIONS: ReadonlyArray<{ key: OptionKey; flowTempC: 40 | 45 | 50 }> = [
+  { key: "eco", flowTempC: 40 },
+  { key: "sweet_spot", flowTempC: 45 },
+  { key: "budget", flowTempC: 50 },
+];
+
+export const DesignResult = z
+  .object({
+    version: z.literal(DESIGN_RESULT_VERSION),
+    /** Exactly three options, in eco → sweet_spot → budget order. */
+    options: z.array(DesignOption).length(3),
+    /** Which option the engine recommends as the default (spec: sweet_spot). */
+    recommended: OptionKey,
+    reviewFlags: z.array(ReviewFlag).default([]),
+    auditTrace: z.array(AuditEntry).default([]),
+  })
+  .superRefine((result, ctx) => {
+    // The three options must be exactly eco/sweet_spot/budget at 40/45/50, in
+    // order — the spec's invariant, not merely "three of something".
+    REQUIRED_OPTIONS.forEach((required, i) => {
+      const option = result.options[i];
+      if (!option) return; // length(3) already reported the shape error
+      if (option.key !== required.key || option.flowTempC !== required.flowTempC) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["options", i],
+          message: `Option ${i} must be '${required.key}' at ${required.flowTempC} °C, got '${option.key}' at ${option.flowTempC} °C.`,
+        });
+      }
+    });
+    if (!result.options.some((o) => o.key === result.recommended)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["recommended"],
+        message: `recommended '${result.recommended}' is not one of the options.`,
+      });
+    }
+  });
 export type DesignResult = z.infer<typeof DesignResult>;
 
 /** Parse + validate an engine result (throws on invalid). */

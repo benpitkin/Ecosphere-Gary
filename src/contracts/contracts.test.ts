@@ -110,4 +110,33 @@ describe("DesignResult contract", () => {
     };
     expect(DesignResult.safeParse(bad).success).toBe(false);
   });
+
+  it("rejects the wrong option identity/order (three options of one kind)", () => {
+    const bad = {
+      ...validResult,
+      options: [
+        validDesignOption("eco", 40, "highest"),
+        validDesignOption("eco", 40, "highest"),
+        validDesignOption("eco", 40, "highest"),
+      ],
+    };
+    expect(DesignResult.safeParse(bad).success).toBe(false);
+  });
+
+  it("rejects a key paired with the wrong flow temp", () => {
+    const bad = {
+      ...validResult,
+      options: [
+        validDesignOption("eco", 45, "highest"), // eco must be 40
+        validDesignOption("sweet_spot", 45, "medium"),
+        validDesignOption("budget", 50, "lowest"),
+      ],
+    };
+    expect(DesignResult.safeParse(bad).success).toBe(false);
+  });
+
+  it("rejects a recommended option that isn't present", () => {
+    const bad = { ...validResult, recommended: "premium" };
+    expect(DesignResult.safeParse(bad).success).toBe(false);
+  });
 });
