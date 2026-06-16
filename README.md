@@ -12,15 +12,41 @@ constants so later phases build on solid ground.
 - **Vitest** for tests, **ESLint** (`next/core-web-vitals`) for lint
 - **GitHub Actions** CI: lint → typecheck → test → build
 
-## Getting started
+## Run locally
+
+Gary runs fully on your machine — no cloud account required.
+
+### Quickest (app only, no database)
+
+The Supabase/Core clients are lazy, so the app boots fine with empty env:
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in once Supabase/Core are provisioned
-npm run dev                  # http://localhost:3000
+npm run dev          # http://localhost:3000
 ```
 
-Health probe: `GET /api/health` reports phase and which integrations are wired.
+`GET /api/health` reports the phase and which integrations are wired (both
+`false` in this mode).
+
+### Full local stack (with a local Supabase database)
+
+Requires Docker. This gives you a real Postgres + Supabase Studio locally,
+seeded by the migrations in `supabase/migrations/`.
+
+```bash
+npm install
+npm run db:start     # boots local Supabase (first run pulls Docker images)
+npm run db:status    # prints the local URL + anon/service keys
+cp .env.local.example .env.local
+# paste the keys from db:status into .env.local
+npm run dev          # http://localhost:3000  (Studio: http://127.0.0.1:54323)
+```
+
+Handy: `npm run db:reset` re-applies migrations from scratch, `npm run db:stop`
+tears the stack down.
+
+> Cloud Supabase is intentionally not provisioned yet. When it is, the same env
+> vars point at the hosted project instead of localhost.
 
 ## Scripts
 
@@ -31,6 +57,10 @@ Health probe: `GET /api/health` reports phase and which integrations are wired.
 | `npm run lint`      | ESLint                           |
 | `npm run typecheck` | `tsc --noEmit`                   |
 | `npm test`          | Vitest                           |
+| `npm run db:start`  | Boot local Supabase (Docker)     |
+| `npm run db:status` | Show local Supabase URL + keys   |
+| `npm run db:reset`  | Re-apply migrations locally      |
+| `npm run db:stop`   | Stop local Supabase              |
 
 ## Design decisions
 
