@@ -147,7 +147,7 @@ which the parser turns into a `SurveyObject`.
 | 0     | Scaffold: repo, schemas, Supabase (+ empty pgvector), Vercel, stubs         | CODE DONE — cloud Supabase/Vercel pending |
 | 1     | Wrap Spruce auth / estimates / jobs                                          | not started |
 | 2     | Spruce PDF parser → SurveyObject (golden fixture: 3 Orchard Close)          | not started |
-| 3     | Deterministic calc engine (emitter sizing + MCS031), tested                 | not started |
+| 3     | Deterministic calc engine (emitter sizing + MCS031), tested                 | PRIMITIVES DONE — MCS031 + wiring + fixture validation pending |
 | 4     | Claude reasoning layer: monitor comms → intent → justifications             | not started |
 | 5     | Populate knowledge base (infra built in Phase 0)                            | not started |
 | 6     | Core integration: hand off three options for proposal                       | not started |
@@ -199,30 +199,42 @@ bump.
 
 ## Status
 
-- **Current phase:** Phase 0 — **code complete and merged to `main`**; only cloud
-  provisioning (Supabase Pro + Vercel) remains, and both are blocked on Ben.
-- **Last session:** Imported this orientation file and brought the Phase 0 scaffold
-  in line with the spec — versioned `SurveyObject` / `DesignResult` zod contracts
-  (with the three-option invariant enforced), the `POST /api/design` route
-  (validates input, returns 501 until Phase 3), stubbed ingestion (PDF adapter) /
-  calc engine / reasoning / RAG / core modules, and a Supabase migration enabling
-  **pgvector** with an empty `knowledge_base` table. Merged via PRs #1, #2, #3.
-  CI green (lint, typecheck, test, build); security review clean; one code-review
-  finding (contract strictness) fixed.
-- **Blocked on Ben:** (a) Supabase is on the free 2-project cap (both slots in use:
-  main ops DB + Core) — Gary's own hosted DB needs a Pro upgrade; (b) Vercel deploy
-  needs a token or a one-click git import of the repo.
-- **Golden fixture:** 3 Orchard Close, Ottery St. Mary heat loss report (5.65 kW,
-  13 rooms, Vaillant aroTHERM pro 7 kW, SCOP 4.13 @ 45 °C, 45 °C flow, 9 new
-  radiators + UFH).
+- **Current phase:** Phase 0 code-complete & merged; **Phase 3 primitives built**.
+- **Phase 0:** scaffold merged to `main` — versioned `SurveyObject` / `DesignResult`
+  zod contracts (three-option invariant enforced via superRefine), `POST /api/design`
+  (validates input, 501 until the engine is wired), stubbed ingestion / engine /
+  reasoning / RAG / core modules, and a Supabase migration enabling **pgvector** with
+  an empty `knowledge_base` table.
+- **Phase 3 (in progress):** the deterministic sizing primitives are implemented as
+  pure, unit-tested functions (no LLM, no I/O):
+  - `engine/emitter.ts` — EN442 radiator output correction + per-room sizing
+    (keep/replacement/new), handling negative-element and infeasible cases.
+  - `engine/heatpump.ts` — cover-ratio matching, under/oversize flags, per-flow-temp
+    SCOP lookup, model selection. Validated against the fixture's stated figures
+    (5.65 kW loss / 7.54 kW → 1.33 cover, SCOP 4.13 @ 45 °C).
+  - `engine/radiator.ts` — smallest-adequate radiator selection from a catalogue.
+  - 45 tests green (lint, typecheck, test, build); security review clean.
+- **Blocked on Ben — needed to finish Phase 3:**
+  1. **MCS031 methodology** — the actual MCS031 calc method + electricity tariff and
+     carbon factors. Compliance-critical; **not** to be guessed.
+  2. **Manufacturer catalogues** — Stelrad rated outputs (ΔT50) and Vaillant
+     aroTHERM / Grant performance tables (capacity + SCOP by flow temp). The
+     selection/matching algorithms take these as inputs; only the data is missing.
+  3. **3 Orchard Close survey PDF** into `fixtures/` — to validate the engine
+     end-to-end before it's trusted, and to build the Phase 2 parser against.
+- **Blocked on Ben — infra & Phase 1:** (a) Supabase free 2-project cap is full
+  (main ops DB + Core) → Gary's hosted DB needs a Pro upgrade; (b) Vercel deploy
+  needs a token or git-import; (c) Spruce API docs/Extended access for the Phase 1
+  client (endpoint payloads are undocumented to me, so the client isn't built yet).
+- **Golden fixture:** 3 Orchard Close, Ottery St. Mary (5.65 kW, 13 rooms, Vaillant
+  aroTHERM pro 7 kW, SCOP 4.13 @ 45 °C, 45 °C flow, 9 new radiators + UFH).
 
 ## Next
 
-1. Provision Gary's own cloud **Supabase** (needs Supabase Pro — free 2-project cap
-   is full) and **Vercel** (needs a token, or git-import the repo), then apply the
-   pgvector migration to the hosted DB.
-2. Get the **3 Orchard Close** survey PDF into `fixtures/` so Phases 2–3 have the
-   golden fixture to build and validate against.
-3. Confirm the **Spruce** API key has Extended API access (for `/v1/estimates`).
-4. Begin **Phase 2** (PDF parser → `SurveyObject`) against the golden fixture, then
-   **Phase 3** (deterministic calc engine), proving it before any LLM wiring.
+1. **Unblock Phase 3:** provide the MCS031 method + tariff/carbon factors, the
+   Stelrad and Vaillant/Grant data, and the 3 Orchard Close PDF. Then wire
+   `engine/designOptions` end-to-end and validate "% demand met" against the fixture.
+2. **Infra:** Supabase Pro upgrade + Vercel token/import; apply the pgvector
+   migration to the hosted DB.
+3. **Phase 1:** Spruce API docs → build/typed-test the auth/estimates/jobs client.
+4. Only after the engine is proven: **Phase 4** (Claude reasoning/justifications).
