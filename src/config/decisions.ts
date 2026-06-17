@@ -52,6 +52,24 @@ export function meanWaterTempC(flowTempC: number): number {
   return flowTempC - EMITTER_SIZING.deltaTC / 2;
 }
 
+/**
+ * Radiator output physics (EN442). A radiator's heat output scales with the
+ * temperature difference between its mean water temperature and the room,
+ * raised to an exponent `n`, relative to the reference ΔT at which it is rated:
+ *
+ *   output = ratedOutput × (Δt_actual / Δt_rated) ^ n
+ *
+ * `n` ≈ 1.3 is the standard value for panel radiators; `Δt_rated` is 50 K
+ * (EN442). Both are configurable here so a manufacturer-specific exponent can be
+ * substituted later without touching the engine.
+ */
+export const RADIATOR = {
+  /** EN442 reference temperature difference for rated output, K. */
+  ratedDeltaTK: 50,
+  /** Output exponent n (EN442 / typical panel-radiator value). */
+  exponent: 1.3,
+} as const;
+
 /** Heat-pump matching: capacity at design conditions must meet/exceed loss. */
 export const HEAT_PUMP_MATCH = {
   /** Minimum acceptable cover (capacity / design heat loss). */
