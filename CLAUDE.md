@@ -146,7 +146,7 @@ which the parser turns into a `SurveyObject`.
 | ----- | --------------------------------------------------------------------------- | ----------- |
 | 0     | Scaffold: repo, schemas, Supabase (+ empty pgvector), Vercel, stubs         | CODE DONE — cloud Supabase/Vercel pending |
 | 1     | Wrap Spruce auth / estimates / jobs                                          | not started |
-| 2     | Spruce PDF parser → SurveyObject (golden fixture: 3 Orchard Close)          | not started |
+| 2     | Spruce PDF parser → SurveyObject (golden fixture: 3 Orchard Close)          | CORE DONE — emitter extraction follow-up |
 | 3     | Deterministic calc engine (emitter sizing + MCS031), tested                 | PRIMITIVES DONE — MCS031 + wiring + fixture validation pending |
 | 4     | Claude reasoning layer: monitor comms → intent → justifications             | not started |
 | 5     | Populate knowledge base (infra built in Phase 0)                            | not started |
@@ -220,7 +220,13 @@ bump.
     consistent Stelrad ratings (~1.28 W/mm) across 18 °C and 21 °C rooms.
 - **Golden fixture is in the repo:** `fixtures/3-orchard-close.pdf` +
   `src/fixtures/threeOrchardClose.ts` (hand-encoded `SurveyObject` + reference
-  figures). Phase 2 (PDF parser) can now be built against it.
+  figures).
+- **Phase 2 (core done):** `src/lib/ingestion/sprucePdf.ts` parses a Spruce report
+  PDF into a `SurveyObject` via `pdf-parse` (pure-JS, Vercel-friendly), validated to
+  reproduce the golden fixture's 13 rooms (floor/temp/loss/area), heat pump, design
+  conditions, and the incomplete-sound-assessment flag. Floors are assigned from the
+  stated floor subtotals (disambiguating the two Hall/Landing). Per-room emitter
+  extraction is the remaining follow-up.
 - **Blocked on Ben — needed to finish Phase 3:**
   1. **MCS031 methodology** — *MCS 031 Issue 4.0* (the report's example outputs are
      captured: 12,165 kWh heating, 2,938 kWh DHW, SPF 3.4) but the method tables
@@ -238,13 +244,13 @@ bump.
 
 ## Next
 
-1. **Phase 2 (PDF parser):** now buildable against `fixtures/3-orchard-close.pdf`,
-   targeting `src/fixtures/threeOrchardClose.ts` as the expected output. Needs a
-   decision on the PDF text-extraction library (e.g. `pdf-parse` / `pdfjs-dist`,
-   since the `pdftotext` system binary isn't available on Vercel).
-2. **Unblock the rest of Phase 3:** provide the MCS031 Issue 4.0 method +
-   tariff/carbon factors and the Stelrad catalogue, then wire
-   `engine/designOptions` end-to-end and validate "% demand met" against the fixture.
+1. **Unblock the rest of Phase 3:** provide the MCS031 Issue 4.0 method +
+   tariff/carbon factors and the Stelrad catalogue (ΔT50 outputs), then wire
+   `engine/designOptions` end-to-end (emitter sizing → radiator selection →
+   heat-pump match → MCS031 per option) and validate "% demand met" against the
+   fixture.
+2. **Phase 2 follow-up:** parse per-room emitters (current-emitters table, UFH rows)
+   into `SurveyObject.rooms[].emitters`.
 3. **Infra:** Supabase Pro upgrade + Vercel token/import; apply the pgvector
    migration to the hosted DB.
 4. **Phase 1:** Spruce API docs → build/typed-test the auth/estimates/jobs client.
