@@ -47,6 +47,10 @@ export const SurveyRoom = z.object({
   floor: z.string(),
   /** Room design heat loss in watts (accepted from Spruce as-is). */
   heatLossW: z.number(),
+  /** Room set-point temperature, °C — drives emitter sizing (flow − ΔT vs room). */
+  roomTempC: z.number().optional(),
+  /** Floor area m², where reported. */
+  floorAreaM2: z.number().optional(),
   /** True when this row represents a merged zone (e.g. "Bed & Ensuite + Bed 1"). */
   merged: z.boolean().default(false),
   emitters: z.array(SurveyedEmitter).default([]),
