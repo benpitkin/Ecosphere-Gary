@@ -206,22 +206,29 @@ bump.
   reasoning / RAG / core modules, and a Supabase migration enabling **pgvector** with
   an empty `knowledge_base` table.
 - **Phase 3 (in progress):** the deterministic sizing primitives are implemented as
-  pure, unit-tested functions (no LLM, no I/O):
+  pure, unit-tested functions (no LLM, no I/O), and **validated against the golden
+  fixture**:
   - `engine/emitter.ts` — EN442 radiator output correction + per-room sizing
     (keep/replacement/new), handling negative-element and infeasible cases.
   - `engine/heatpump.ts` — cover-ratio matching, under/oversize flags, per-flow-temp
-    SCOP lookup, model selection. Validated against the fixture's stated figures
-    (5.65 kW loss / 7.54 kW → 1.33 cover, SCOP 4.13 @ 45 °C).
+    SCOP lookup, model selection.
   - `engine/radiator.ts` — smallest-adequate radiator selection from a catalogue.
-  - 45 tests green (lint, typecheck, test, build); security review clean.
+  - `engine/catalog/vaillantAroThermPro7kw.ts` — the **real** Vaillant capacity
+    matrix + SCOP table from the report, with outdoor-temp interpolation.
+  - 53 tests green. Validated against the fixture: 7.54 kW @ 45 °C / -1.5 °C →
+    1.33 cover, SCOP 4.43/4.13/3.82 @ 40/45/50; the EN442 factor back-computes
+    consistent Stelrad ratings (~1.28 W/mm) across 18 °C and 21 °C rooms.
+- **Golden fixture is in the repo:** `fixtures/3-orchard-close.pdf` +
+  `src/fixtures/threeOrchardClose.ts` (hand-encoded `SurveyObject` + reference
+  figures). Phase 2 (PDF parser) can now be built against it.
 - **Blocked on Ben — needed to finish Phase 3:**
-  1. **MCS031 methodology** — the actual MCS031 calc method + electricity tariff and
-     carbon factors. Compliance-critical; **not** to be guessed.
-  2. **Manufacturer catalogues** — Stelrad rated outputs (ΔT50) and Vaillant
-     aroTHERM / Grant performance tables (capacity + SCOP by flow temp). The
-     selection/matching algorithms take these as inputs; only the data is missing.
-  3. **3 Orchard Close survey PDF** into `fixtures/` — to validate the engine
-     end-to-end before it's trusted, and to build the Phase 2 parser against.
+  1. **MCS031 methodology** — *MCS 031 Issue 4.0* (the report's example outputs are
+     captured: 12,165 kWh heating, 2,938 kWh DHW, SPF 3.4) but the method tables
+     (fixed SPF by flow temp/emitter, HDD demand) + tariff/carbon factors are not
+     available. Compliance-critical; **not** to be guessed.
+  2. **Stelrad catalogue** — rated ΔT50 outputs by model (the selection algorithm
+     takes this as input; only the data is missing). Grant performance table too,
+     for the alt heat pump.
 - **Blocked on Ben — infra & Phase 1:** (a) Supabase free 2-project cap is full
   (main ops DB + Core) → Gary's hosted DB needs a Pro upgrade; (b) Vercel deploy
   needs a token or git-import; (c) Spruce API docs/Extended access for the Phase 1
@@ -231,10 +238,14 @@ bump.
 
 ## Next
 
-1. **Unblock Phase 3:** provide the MCS031 method + tariff/carbon factors, the
-   Stelrad and Vaillant/Grant data, and the 3 Orchard Close PDF. Then wire
+1. **Phase 2 (PDF parser):** now buildable against `fixtures/3-orchard-close.pdf`,
+   targeting `src/fixtures/threeOrchardClose.ts` as the expected output. Needs a
+   decision on the PDF text-extraction library (e.g. `pdf-parse` / `pdfjs-dist`,
+   since the `pdftotext` system binary isn't available on Vercel).
+2. **Unblock the rest of Phase 3:** provide the MCS031 Issue 4.0 method +
+   tariff/carbon factors and the Stelrad catalogue, then wire
    `engine/designOptions` end-to-end and validate "% demand met" against the fixture.
-2. **Infra:** Supabase Pro upgrade + Vercel token/import; apply the pgvector
+3. **Infra:** Supabase Pro upgrade + Vercel token/import; apply the pgvector
    migration to the hosted DB.
-3. **Phase 1:** Spruce API docs → build/typed-test the auth/estimates/jobs client.
-4. Only after the engine is proven: **Phase 4** (Claude reasoning/justifications).
+4. **Phase 1:** Spruce API docs → build/typed-test the auth/estimates/jobs client.
+5. Only after the engine is proven: **Phase 4** (Claude reasoning/justifications).
