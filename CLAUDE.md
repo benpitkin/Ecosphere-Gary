@@ -226,7 +226,9 @@ bump.
     with no Stelrad catalogue injected it specifies the exact required ΔT50 rating
     ("model TBC") and raises blocker flags (`mcs031_provisional`,
     `stelrad_catalogue_pending`); per-option `justification` is left null for Phase 4.
-  - `POST /api/design` now runs the engine (was 501).
+  - `POST /api/design` now runs the engine (was 501). An internal **`/design`
+    page** + `POST /api/design/from-pdf` chain parse + design so Ben can drop in a
+    Spruce PDF and see the three options (blocker flags shown prominently).
   - **79 tests green.** Fixture validation: 7.54 kW @ 45 °C / -1.5 °C → 1.33 cover,
     SCOP 4.43/4.13/3.82 @ 40/45/50; keep/replace decisions reproduce the report
     (Hall/Landing kept, Living/Lounge & Study replaced at 45 °C) and demonstrate the
