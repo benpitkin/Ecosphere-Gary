@@ -146,7 +146,7 @@ which the parser turns into a `SurveyObject`.
 | ----- | --------------------------------------------------------------------------- | ----------- |
 | 0     | Scaffold: repo, schemas, Supabase (+ empty pgvector), Vercel, stubs         | CODE DONE — cloud Supabase/Vercel pending |
 | 1     | Wrap Spruce auth / estimates / jobs                                          | not started |
-| 2     | Spruce PDF parser → SurveyObject (golden fixture: 3 Orchard Close)          | CORE DONE — emitter extraction follow-up |
+| 2     | Spruce PDF parser → SurveyObject (golden fixture: 3 Orchard Close)          | DONE        |
 | 3     | Deterministic calc engine (emitter sizing + MCS031), tested                 | PRIMITIVES DONE — MCS031 + wiring + fixture validation pending |
 | 4     | Claude reasoning layer: monitor comms → intent → justifications             | not started |
 | 5     | Populate knowledge base (infra built in Phase 0)                            | not started |
@@ -221,12 +221,16 @@ bump.
 - **Golden fixture is in the repo:** `fixtures/3-orchard-close.pdf` +
   `src/fixtures/threeOrchardClose.ts` (hand-encoded `SurveyObject` + reference
   figures).
-- **Phase 2 (core done):** `src/lib/ingestion/sprucePdf.ts` parses a Spruce report
+- **Phase 2 (DONE):** `src/lib/ingestion/sprucePdf.ts` parses a Spruce report
   PDF into a `SurveyObject` via `pdf-parse` (pure-JS, Vercel-friendly), validated to
   reproduce the golden fixture's 13 rooms (floor/temp/loss/area), heat pump, design
   conditions, and the incomplete-sound-assessment flag. Floors are assigned from the
-  stated floor subtotals (disambiguating the two Hall/Landing). Per-room emitter
-  extraction is the remaining follow-up.
+  stated floor subtotals (disambiguating the two Hall/Landing). **Per-room existing
+  emitters are now extracted too** (`extractRoomEmitters`): the "Emitter performance"
+  tables in the detailed room sections yield each room's surveyed radiators
+  (type/status "keep"/description/outputW), zipped onto rooms by section order and
+  reproducing the fixture's 6 radiators across 5 rooms exactly (incl. the
+  multi-emitter Living/Lounge and the empty UFH rooms).
 - **Triage (new capability, front-of-funnel):** `POST /api/triage` + an internal
   staff page at `/triage`. Deterministic, pure engine (`src/lib/triage`): address +
   qualifying answers → recommended next action (book survey / human follow-up /
@@ -257,9 +261,13 @@ bump.
    `engine/designOptions` end-to-end (emitter sizing → radiator selection →
    heat-pump match → MCS031 per option) and validate "% demand met" against the
    fixture.
-2. **Phase 2 follow-up:** parse per-room emitters (current-emitters table, UFH rows)
-   into `SurveyObject.rooms[].emitters`.
-3. **Infra:** Supabase Pro upgrade + Vercel token/import; apply the pgvector
+2. **Direction set (Ben, this session):** Gary stays the **internal design engine**
+   (Core only builds proposals — it does *not* produce the three compliant costed
+   options, so Gary is not redundant). Build the engine now; keep the surface
+   decision open (it can feed Core today and a website *triage* widget later —
+   customer-facing *design advice* stays off the table per spec).
+3. ~~Phase 2 follow-up (per-room emitters)~~ — **DONE** this session.
+4. **Infra:** Supabase Pro upgrade + Vercel token/import; apply the pgvector
    migration to the hosted DB.
-4. **Phase 1:** Spruce API docs → build/typed-test the auth/estimates/jobs client.
-5. Only after the engine is proven: **Phase 4** (Claude reasoning/justifications).
+5. **Phase 1:** Spruce API docs → build/typed-test the auth/estimates/jobs client.
+6. Only after the engine is proven: **Phase 4** (Claude reasoning/justifications).

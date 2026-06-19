@@ -5,8 +5,8 @@ import { parseSprucePdf } from "@/lib/ingestion/sprucePdf";
 import { threeOrchardCloseSurvey } from "@/fixtures/threeOrchardClose";
 import type { SurveyObject } from "@/contracts/survey";
 
-// Core room fields the parser is responsible for (emitter extraction is a
-// follow-up, so it's excluded from the comparison).
+// Core heat-loss room fields (compared separately from emitters for clearer
+// failures).
 const coreRooms = (s: SurveyObject) =>
   s.rooms.map((r) => ({
     name: r.name,
@@ -15,6 +15,11 @@ const coreRooms = (s: SurveyObject) =>
     heatLossW: r.heatLossW,
     floorAreaM2: r.floorAreaM2,
   }));
+
+// Existing emitters keyed to their room (name + floor), for an order-independent
+// comparison against the fixture.
+const roomEmitters = (s: SurveyObject) =>
+  s.rooms.map((r) => ({ name: r.name, floor: r.floor, emitters: r.emitters }));
 
 describe("Spruce PDF parser vs the 3 Orchard Close golden fixture", () => {
   let parsed: SurveyObject;
@@ -46,6 +51,20 @@ describe("Spruce PDF parser vs the 3 Orchard Close golden fixture", () => {
     expect(halls).toHaveLength(2);
     expect(halls.find((r) => r.floor === "ground")?.heatLossW).toBe(402);
     expect(halls.find((r) => r.floor === "first")?.heatLossW).toBe(390);
+  });
+
+  it("extracts each room's existing emitters and attaches them to the right room", () => {
+    expect(roomEmitters(parsed)).toEqual(roomEmitters(threeOrchardCloseSurvey));
+  });
+
+  it("finds the 6 existing radiators across the 5 emitter rooms", () => {
+    const all = parsed.rooms.flatMap((r) => r.emitters);
+    expect(all).toHaveLength(6);
+    expect(all.every((e) => e.type === "radiator" && e.status === "keep")).toBe(true);
+    // Spot-check the multi-emitter Living/Lounge (Keep + Keep) and a UFH room.
+    const lounge = parsed.rooms.find((r) => r.name === "Living/Lounge");
+    expect(lounge?.emitters.map((e) => e.outputW)).toEqual([511, 341]);
+    expect(parsed.rooms.find((r) => r.name === "Kitchen")?.emitters).toEqual([]);
   });
 
   it("flags the incomplete sound assessment", () => {

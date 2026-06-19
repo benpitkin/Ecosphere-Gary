@@ -15,12 +15,62 @@ import {
  * lets us validate it against the 3 Orchard Close golden fixture.
  *
  * Scope (v1): the core SurveyObject — design conditions, whole-house figures,
- * the room-by-room table (with floor assignment), the surveyed heat pump, and
- * the incomplete-section flags. Per-room emitter extraction (the "current
- * emitters" table, UFH rows) is a follow-up; the engine sizes from room demand.
+ * the room-by-room table (with floor assignment), the surveyed heat pump, the
+ * incomplete-section flags, and the per-room existing emitters (the "Emitter
+ * performance" tables) parsed from the detailed room sections.
  */
 
+import type { SurveyedEmitter } from "@/contracts/survey";
+
 const num = (s: string) => Number(s.replace(/,/g, ""));
+
+/**
+ * Existing emitters per room, parsed from the detailed "HEAT LOSS BY ROOM"
+ * sections (one per room, in the same order as the summary table).
+ *
+ * Each room section may carry an "Emitter performance" block; beneath its
+ * `EMITTER … OUTPUT … % DEMAND MET` header the surveyed radiators are listed as
+ * repeating 4-line groups:
+ *
+ *   Radiator
+ *   Type 21 (P+)
+ *   600 x 1200 mm
+ *   511 W58 %
+ *
+ * These are the *existing* radiators (status "keep"); the proposed New/Replace
+ * design is engine output, not survey input. UFH rooms have no such block.
+ * Returns one entry per room section, in document order, for zipping onto the
+ * summary rooms by index (the two orderings are identical in the real report).
+ */
+export function extractRoomEmitters(text: string): SurveyedEmitter[][] {
+  const sections = text.split(/^HEAT LOSS BY ROOM$/m).slice(1);
+  const emitterRow = /^(\d[\d,]*)\s*W\s*\d+\s*%$/; // "511 W58 %" → output W
+  const typeRow = /^(Type\s+\d+\s*\([^)]+\))$/; // "Type 21 (P+)"
+  const dimsRow = /^(\d+)\s*x\s*(\d+)\s*mm$/; // "600 x 1200 mm"
+
+  return sections.map((section) => {
+    const lines = section.split("\n").map((l) => l.trim());
+    const headerIdx = lines.findIndex((l) => /EMITTER.*OUTPUT.*DEMAND MET/.test(l));
+    if (headerIdx < 0) return [];
+
+    const emitters: SurveyedEmitter[] = [];
+    let i = headerIdx + 1;
+    while (i < lines.length && lines[i] === "Radiator") {
+      const type = lines[i + 1]?.match(typeRow);
+      const dims = lines[i + 2]?.match(dimsRow);
+      const out = lines[i + 3]?.match(emitterRow);
+      if (!type || !dims || !out) break; // end of the emitter table
+      emitters.push({
+        type: "radiator",
+        status: "keep",
+        description: `${type[1]} ${dims[1]}x${dims[2]} mm`,
+        outputW: num(out[1]),
+      });
+      i += 4;
+    }
+    return emitters;
+  });
+}
 
 /** Parse the already-extracted report text into a SurveyObject. */
 export function parseSprucePdfText(text: string): SurveyObject {
@@ -89,12 +139,29 @@ export function parseSprucePdfText(text: string): SurveyObject {
     }
   }
 
+  // Existing emitters from the detailed room sections, in document order — the
+  // same order as the summary table, so they zip onto the rooms by index. Guard
+  // against a mismatch (e.g. a layout change) by only attaching when names line
+  // up; flag if the counts diverge so it's never silently wrong.
+  const emittersBySection = extractRoomEmitters(text);
+  if (emittersBySection.length !== parsedRooms.length && emittersBySection.length > 0) {
+    flags.push({
+      code: "emitter_section_mismatch",
+      message: `Found ${emittersBySection.length} room emitter sections but ${parsedRooms.length} summary rooms; emitters not attached.`,
+      severity: "warning",
+    });
+  }
+  const canZip = emittersBySection.length === parsedRooms.length;
+
   const rooms = parsedRooms.map((r, i) => ({
     name: r.name,
     floor: i < boundary ? "ground" : "first",
     roomTempC: r.roomTempC,
     heatLossW: r.heatLossW,
     floorAreaM2: r.floorAreaM2,
+    ...(canZip && emittersBySection[i].length > 0
+      ? { emitters: emittersBySection[i] }
+      : {}),
   }));
 
   // --- Incomplete sections → flags (never assume done) ---
