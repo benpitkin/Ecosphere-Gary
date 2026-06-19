@@ -147,7 +147,7 @@ which the parser turns into a `SurveyObject`.
 | 0     | Scaffold: repo, schemas, Supabase (+ empty pgvector), Vercel, stubs         | CODE DONE — cloud Supabase/Vercel pending |
 | 1     | Wrap Spruce auth / estimates / jobs                                          | not started |
 | 2     | Spruce PDF parser → SurveyObject (golden fixture: 3 Orchard Close)          | DONE        |
-| 3     | Deterministic calc engine (emitter sizing + MCS031), tested                 | PRIMITIVES DONE — MCS031 + wiring + fixture validation pending |
+| 3     | Deterministic calc engine (emitter sizing + MCS031), tested                 | WIRED & FIXTURE-VALIDATED — real MCS031 method + Stelrad data pending (injected) |
 | 4     | Claude reasoning layer: monitor comms → intent → justifications             | not started |
 | 5     | Populate knowledge base (infra built in Phase 0)                            | not started |
 | 6     | Core integration: hand off three options for proposal                       | not started |
@@ -199,15 +199,17 @@ bump.
 
 ## Status
 
-- **Current phase:** Phase 0 code-complete & merged; **Phase 3 primitives built**.
+- **Current phase:** Phase 0 merged; **Phase 3 engine wired end-to-end &
+  fixture-validated** (blocked only on Ben's MCS031 method + Stelrad data, both
+  injected). Phase 2 DONE.
 - **Phase 0:** scaffold merged to `main` — versioned `SurveyObject` / `DesignResult`
   zod contracts (three-option invariant enforced via superRefine), `POST /api/design`
   (validates input, 501 until the engine is wired), stubbed ingestion / engine /
   reasoning / RAG / core modules, and a Supabase migration enabling **pgvector** with
   an empty `knowledge_base` table.
-- **Phase 3 (in progress):** the deterministic sizing primitives are implemented as
-  pure, unit-tested functions (no LLM, no I/O), and **validated against the golden
-  fixture**:
+- **Phase 3 (WIRED end-to-end & fixture-validated):** the deterministic engine is
+  implemented as pure, unit-tested functions (no LLM, no I/O) and now orchestrated
+  end-to-end by `engine/designOptions.ts` (`SurveyObject` → `DesignResult`):
   - `engine/emitter.ts` — EN442 radiator output correction + per-room sizing
     (keep/replacement/new), handling negative-element and infeasible cases.
   - `engine/heatpump.ts` — cover-ratio matching, under/oversize flags, per-flow-temp
@@ -215,9 +217,21 @@ bump.
   - `engine/radiator.ts` — smallest-adequate radiator selection from a catalogue.
   - `engine/catalog/vaillantAroThermPro7kw.ts` — the **real** Vaillant capacity
     matrix + SCOP table from the report, with outdoor-temp interpolation.
-  - 53 tests green. Validated against the fixture: 7.54 kW @ 45 °C / -1.5 °C →
-    1.33 cover, SCOP 4.43/4.13/3.82 @ 40/45/50; the EN442 factor back-computes
-    consistent Stelrad ratings (~1.28 W/mm) across 18 °C and 21 °C rooms.
+  - `engine/mcs031.ts` — MCS031 as an **injected `Mcs031Calculator`**; ships a
+    clearly-labelled `provisionalMcs031Calculator` (compliant: false) until Ben's
+    Issue 4.0 method + tariff/carbon factors arrive.
+  - `engine/designOptions.ts` — builds the three options (eco/sweet_spot/budget @
+    40/45/50, ΔT5): per-room keep/replace/new, heat-pump match + SCOP, MCS031 per
+    option, de-duplicated `reviewFlags`, and an `auditTrace`. **No fabricated data**:
+    with no Stelrad catalogue injected it specifies the exact required ΔT50 rating
+    ("model TBC") and raises blocker flags (`mcs031_provisional`,
+    `stelrad_catalogue_pending`); per-option `justification` is left null for Phase 4.
+  - `POST /api/design` now runs the engine (was 501).
+  - **79 tests green.** Fixture validation: 7.54 kW @ 45 °C / -1.5 °C → 1.33 cover,
+    SCOP 4.43/4.13/3.82 @ 40/45/50; keep/replace decisions reproduce the report
+    (Hall/Landing kept, Living/Lounge & Study replaced at 45 °C) and demonstrate the
+    flow-temp trade-off (Living/Lounge becomes a keep at 50 °C). Real MCS031 numbers
+    and concrete Stelrad models drop in via the injected deps with no rework.
 - **Golden fixture is in the repo:** `fixtures/3-orchard-close.pdf` +
   `src/fixtures/threeOrchardClose.ts` (hand-encoded `SurveyObject` + reference
   figures).
@@ -256,11 +270,12 @@ bump.
 
 ## Next
 
-1. **Unblock the rest of Phase 3:** provide the MCS031 Issue 4.0 method +
-   tariff/carbon factors and the Stelrad catalogue (ΔT50 outputs), then wire
-   `engine/designOptions` end-to-end (emitter sizing → radiator selection →
-   heat-pump match → MCS031 per option) and validate "% demand met" against the
-   fixture.
+1. **Finish Phase 3 (engine now wired):** provide (a) the MCS031 Issue 4.0 method +
+   tariff/carbon factors → drop in as a `compliant` `Mcs031Calculator`, replacing
+   `provisionalMcs031Calculator`; and (b) the Stelrad catalogue (ΔT50 outputs) →
+   pass as `radiatorCatalogue` so the engine selects concrete models instead of
+   "model TBC". Both clear their blocker flags automatically. (UFH sizing still not
+   modelled — flagged `ufh_not_modelled`; decide if/when to add wet-UFH sizing.)
 2. **Direction set (Ben, this session):** Gary stays the **internal design engine**
    (Core only builds proposals — it does *not* produce the three compliant costed
    options, so Gary is not redundant). Build the engine now; keep the surface

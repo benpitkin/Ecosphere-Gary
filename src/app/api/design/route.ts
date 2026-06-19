@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { parseSurveyObject } from "@/contracts/survey";
-import { designOptions, NotImplementedError } from "@/lib/engine";
+import { designOptions } from "@/lib/engine";
 
 export const dynamic = "force-dynamic";
 
 /**
  * POST /api/design — the stable entry point Core calls.
  *
- * SurveyObject in → DesignResult out. Phase 0 validates the input against the
- * contract and then returns 501, because the deterministic calc engine (Phase 3)
- * is not built yet. This makes the interface real and testable now: a malformed
- * survey is rejected with 422; a well-formed one reaches the (pending) engine.
+ * SurveyObject in → DesignResult out. A malformed survey is rejected with 422; a
+ * well-formed one is run through the deterministic engine, which returns the
+ * three options with per-option review flags. NOTE: until the MCS031 Issue 4.0
+ * method and the Stelrad catalogue are supplied, results carry blocker-severity
+ * `reviewFlags` (mcs031_provisional, stelrad_catalogue_pending) — callers must
+ * treat them as provisional, not sign-off-ready.
  */
 export async function POST(request: Request) {
   let body: unknown;
@@ -37,16 +39,6 @@ export async function POST(request: Request) {
     throw err;
   }
 
-  try {
-    const result = designOptions(survey);
-    return NextResponse.json(result, { status: 200 });
-  } catch (err) {
-    if (err instanceof NotImplementedError) {
-      return NextResponse.json(
-        { error: "not_implemented", message: err.message },
-        { status: 501 },
-      );
-    }
-    throw err;
-  }
+  const result = designOptions(survey);
+  return NextResponse.json(result, { status: 200 });
 }

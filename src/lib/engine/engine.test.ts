@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { designOptions, NotImplementedError } from "@/lib/engine";
+import { designOptions } from "@/lib/engine";
 import { resolveModel } from "@/lib/reasoning";
 import { REASONING } from "@/config/decisions";
 import { SURVEY_OBJECT_VERSION, type SurveyObject } from "@/contracts/survey";
@@ -15,8 +15,14 @@ const survey: SurveyObject = {
 };
 
 describe("calc engine (Phase 3 boundary)", () => {
-  it("throws NotImplementedError until the engine is built", () => {
-    expect(() => designOptions(survey)).toThrow(NotImplementedError);
+  it("produces the three fixed options for a minimal survey", () => {
+    const result = designOptions(survey);
+    expect(result.options.map((o) => [o.key, o.flowTempC])).toEqual([
+      ["eco", 40],
+      ["sweet_spot", 45],
+      ["budget", 50],
+    ]);
+    expect(result.recommended).toBe("sweet_spot");
   });
 });
 
