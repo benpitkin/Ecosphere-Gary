@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { designOptions } from "@/lib/engine";
 import { provisionalMcs031Calculator, type Mcs031Calculator } from "@/lib/engine/mcs031";
 import type { RadiatorModel } from "@/lib/engine/radiator";
+import type { HeatPumpModel } from "@/lib/engine/heatpump";
 import { threeOrchardCloseSurvey, EXPECTED_HEAT_PUMP } from "@/fixtures/threeOrchardClose";
 import type { DesignOption } from "@/contracts/design";
 
@@ -100,6 +101,21 @@ describe("designOptions with injected dependencies (real data slots in)", () => 
     const study = result.options[1].emitters.find((e) => e.room === "Study" && e.status !== "keep");
     expect(study?.specification).toMatch(/^Stelrad Type/);
     expect(result.reviewFlags.some((f) => f.code === "stelrad_catalogue_pending")).toBe(false);
+  });
+
+  it("handles a heat-pump no-match without emitting Infinity/NaN performance figures", () => {
+    // A candidate with no performance points → no match at any flow temp.
+    const emptyModel: HeatPumpModel = { manufacturer: "X", model: "Y", performance: [] };
+    const result = designOptions(threeOrchardCloseSurvey, { heatPumpCandidates: [emptyModel] });
+    for (const o of result.options) {
+      expect(o.heatPump.model).toBe("no match");
+      expect(o.heatPump.scop).toBe(0);
+      // The guard zeroes the electricity-derived figures rather than dividing by 0.
+      expect(o.performance.annualRunningCostGbp).toBe(0);
+      expect(o.performance.spf).toBe(0);
+      expect(Number.isFinite(o.performance.annualHeatingKwh)).toBe(true);
+    }
+    expect(result.reviewFlags.some((f) => f.code === "heat_pump_no_match")).toBe(true);
   });
 
   it("drops the provisional-MCS031 blocker when a compliant calculator is injected", () => {

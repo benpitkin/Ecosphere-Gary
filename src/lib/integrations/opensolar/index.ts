@@ -40,7 +40,8 @@ export function openSolarConfigFromEnv(): OpenSolarConfig | null {
   return {
     token,
     orgId,
-    baseUrl: process.env.OPENSOLAR_BASE_URL?.trim() || DEFAULT_BASE_URL,
+    // Strip any trailing slash so path joins don't produce a double slash.
+    baseUrl: (process.env.OPENSOLAR_BASE_URL?.trim() || DEFAULT_BASE_URL).replace(/\/+$/, ""),
   };
 }
 
@@ -140,7 +141,18 @@ export function createOpenSolarClient(
       },
     });
     if (!res.ok) {
-      throw new OpenSolarApiError(res.status, `OpenSolar GET ${path} → ${res.status}`);
+      // Include the server's error body (OpenSolar returns a detail message) so
+      // failures are diagnosable, not just a bare status code.
+      let detail = "";
+      try {
+        detail = await res.text();
+      } catch {
+        /* body unavailable — fall back to the status alone */
+      }
+      throw new OpenSolarApiError(
+        res.status,
+        `OpenSolar GET ${path} → ${res.status}${detail ? `: ${detail.slice(0, 300)}` : ""}`,
+      );
     }
     return res.json();
   };

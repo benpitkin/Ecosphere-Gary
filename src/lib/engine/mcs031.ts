@@ -80,6 +80,21 @@ export const provisionalMcs031Calculator: Mcs031Calculator = {
     const annualHeatingKwh = designHeatLossKw * f.equivalentFullLoadHours;
     const annualDhwKwh = occupants * f.dhwKwhPerOccupant;
 
+    // Guard against a non-positive SCOP (e.g. the engine's heat-pump "no match"
+    // fallback passes scop 0): dividing would yield Infinity/NaN, which would
+    // either masquerade as a real figure or crash result validation. Report the
+    // demand but zero the electricity-derived figures — the no-match heat pump
+    // already raises its own blocker flag.
+    if (!(scop > 0)) {
+      return {
+        spf: 0,
+        annualHeatingKwh: round(annualHeatingKwh),
+        annualDhwKwh: round(annualDhwKwh),
+        annualRunningCostGbp: 0,
+        annualCarbonKgCo2e: 0,
+      };
+    }
+
     // Electricity input — heating at SCOP, DHW at a derated COP.
     const dhwCop = scop * f.dhwCopFraction;
     const electricityKwh = annualHeatingKwh / scop + annualDhwKwh / dhwCop;

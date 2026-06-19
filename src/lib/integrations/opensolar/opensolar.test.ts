@@ -16,7 +16,12 @@ const config: OpenSolarConfig = {
 };
 
 const jsonResponse = (body: unknown, ok = true, status = 200) =>
-  ({ ok, status, json: async () => body }) as Response;
+  ({
+    ok,
+    status,
+    json: async () => body,
+    text: async () => (typeof body === "string" ? body : JSON.stringify(body)),
+  }) as Response;
 
 /** A fetch mock whose recorded calls carry fetch's parameter types. */
 const mockFetch = (impl: () => Response) =>

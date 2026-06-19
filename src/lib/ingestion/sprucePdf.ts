@@ -39,10 +39,19 @@ const num = (s: string) => Number(s.replace(/,/g, ""));
  *
  * These are the *existing* radiators (status "keep"); the proposed New/Replace
  * design is engine output, not survey input. UFH rooms have no such block.
- * Returns one entry per room section, in document order, for zipping onto the
- * summary rooms by index (the two orderings are identical in the real report).
+ * Returns one entry per room section, in document order, each carrying the
+ * section's room `name` (so the caller can verify alignment with the summary
+ * rooms by name, not just by count) and a `truncated` flag set when an emitter
+ * group started but couldn't be fully parsed (a partial-parse signal so a
+ * dropped line isn't silently lost).
  */
-export function extractRoomEmitters(text: string): SurveyedEmitter[][] {
+export interface ParsedEmitterSection {
+  name: string;
+  emitters: SurveyedEmitter[];
+  truncated: boolean;
+}
+
+export function extractRoomEmitters(text: string): ParsedEmitterSection[] {
   const sections = text.split(/^HEAT LOSS BY ROOM$/m).slice(1);
   const emitterRow = /^(\d[\d,]*)\s*W\s*\d+\s*%$/; // "511 W58 %" → output W
   const typeRow = /^(Type\s+\d+\s*\([^)]+\))$/; // "Type 21 (P+)"
@@ -50,16 +59,24 @@ export function extractRoomEmitters(text: string): SurveyedEmitter[][] {
 
   return sections.map((section) => {
     const lines = section.split("\n").map((l) => l.trim());
+    // The room name is the first non-empty line of the section.
+    const name = lines.find((l) => l !== "") ?? "";
     const headerIdx = lines.findIndex((l) => /EMITTER.*OUTPUT.*DEMAND MET/.test(l));
-    if (headerIdx < 0) return [];
+    if (headerIdx < 0) return { name, emitters: [], truncated: false };
 
     const emitters: SurveyedEmitter[] = [];
+    let truncated = false;
     let i = headerIdx + 1;
     while (i < lines.length && lines[i] === "Radiator") {
       const type = lines[i + 1]?.match(typeRow);
       const dims = lines[i + 2]?.match(dimsRow);
       const out = lines[i + 3]?.match(emitterRow);
-      if (!type || !dims || !out) break; // end of the emitter table
+      if (!type || !dims || !out) {
+        // A "Radiator" row whose details don't parse: the table was cut short
+        // (e.g. pdf-parse dropped a line) rather than ending cleanly.
+        truncated = true;
+        break;
+      }
       emitters.push({
         type: "radiator",
         status: "keep",
@@ -68,7 +85,7 @@ export function extractRoomEmitters(text: string): SurveyedEmitter[][] {
       });
       i += 4;
     }
-    return emitters;
+    return { name, emitters, truncated };
   });
 }
 
@@ -140,18 +157,35 @@ export function parseSprucePdfText(text: string): SurveyObject {
   }
 
   // Existing emitters from the detailed room sections, in document order — the
-  // same order as the summary table, so they zip onto the rooms by index. Guard
-  // against a mismatch (e.g. a layout change) by only attaching when names line
-  // up; flag if the counts diverge so it's never silently wrong.
-  const emittersBySection = extractRoomEmitters(text);
-  if (emittersBySection.length !== parsedRooms.length && emittersBySection.length > 0) {
+  // same order as the summary table, so they zip onto the rooms by index. Only
+  // attach when the section room names line up with the summary rooms by index
+  // (counts equal AND names match) — so a layout change can never silently
+  // misattach emitters (e.g. to the wrong "Hall/Landing"). Flag any divergence.
+  const emitterSections = extractRoomEmitters(text);
+  const countsMatch = emitterSections.length === parsedRooms.length;
+  const namesAlign =
+    countsMatch && emitterSections.every((s, i) => s.name === parsedRooms[i].name);
+
+  if (!countsMatch) {
     flags.push({
       code: "emitter_section_mismatch",
-      message: `Found ${emittersBySection.length} room emitter sections but ${parsedRooms.length} summary rooms; emitters not attached.`,
+      message: `Found ${emitterSections.length} room emitter sections but ${parsedRooms.length} summary rooms; existing emitters not attached.`,
+      severity: "warning",
+    });
+  } else if (!namesAlign) {
+    flags.push({
+      code: "emitter_section_misaligned",
+      message: "Room emitter sections don't line up with the summary rooms by name; existing emitters not attached.",
       severity: "warning",
     });
   }
-  const canZip = emittersBySection.length === parsedRooms.length;
+  if (emitterSections.some((s) => s.truncated)) {
+    flags.push({
+      code: "emitter_parse_partial",
+      message: "An emitter table could not be fully parsed (a line may have been dropped); some existing radiators may be missing.",
+      severity: "warning",
+    });
+  }
 
   const rooms = parsedRooms.map((r, i) => ({
     name: r.name,
@@ -159,8 +193,8 @@ export function parseSprucePdfText(text: string): SurveyObject {
     roomTempC: r.roomTempC,
     heatLossW: r.heatLossW,
     floorAreaM2: r.floorAreaM2,
-    ...(canZip && emittersBySection[i].length > 0
-      ? { emitters: emittersBySection[i] }
+    ...(namesAlign && emitterSections[i].emitters.length > 0
+      ? { emitters: emitterSections[i].emitters }
       : {}),
   }));
 

@@ -43,6 +43,20 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = designOptions(survey);
-  return NextResponse.json({ survey, result }, { status: 200 });
+  try {
+    const result = designOptions(survey);
+    return NextResponse.json({ survey, result }, { status: 200 });
+  } catch (err) {
+    // The PDF parsed but the engine couldn't design from it — return the survey
+    // and a structured error rather than an opaque 500, since the input is an
+    // arbitrary uploaded file.
+    return NextResponse.json(
+      {
+        error: "design_failed",
+        message: err instanceof Error ? err.message : "Could not produce a design.",
+        survey,
+      },
+      { status: 422 },
+    );
+  }
 }

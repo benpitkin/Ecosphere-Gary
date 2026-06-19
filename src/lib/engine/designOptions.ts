@@ -190,8 +190,6 @@ export function designOptions(
         existingRatedOutputW: existingRatedDeltaT50,
       });
 
-      const cf = correctionFactor(flowTempC, roomTempC);
-
       if (sized.status === "keep") {
         keepCount += 1;
         // Emit one row per kept radiator; split the room demand across them in
