@@ -227,6 +227,14 @@ bump.
   conditions, and the incomplete-sound-assessment flag. Floors are assigned from the
   stated floor subtotals (disambiguating the two Hall/Landing). Per-room emitter
   extraction is the remaining follow-up.
+- **Triage (new capability, front-of-funnel):** `POST /api/triage` + an internal
+  staff page at `/triage`. Deterministic, pure engine (`src/lib/triage`): address +
+  qualifying answers → recommended next action (book survey / human follow-up /
+  gather info / nurture / not suitable) + an *indicative* heat-pump size band +
+  flags. Runs **before** a survey (so it does not use the design engine). EPC
+  address-lookup is stubbed (`lib/triage/epc.ts`) pending an `EPC_API_KEY`.
+  Internal-only for now — a customer-facing website chatbot would cross the spec's
+  "not customer-facing" rule and is a deliberate decision still to be made.
 - **Blocked on Ben — needed to finish Phase 3:**
   1. **MCS031 methodology** — *MCS 031 Issue 4.0* (the report's example outputs are
      captured: 12,165 kWh heating, 2,938 kWh DHW, SPF 3.4) but the method tables
