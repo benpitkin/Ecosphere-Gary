@@ -253,6 +253,17 @@ bump.
   address-lookup is stubbed (`lib/triage/epc.ts`) pending an `EPC_API_KEY`.
   Internal-only for now — a customer-facing website chatbot would cross the spec's
   "not customer-facing" rule and is a deliberate decision still to be made.
+- **OpenSolar (new direction, Ben — scaffolded):** have Gary do **initial solar (PV)
+  designs** in OpenSolar to cut that hand-work. Researched + scaffolded as its own
+  **integration adapter** (`src/lib/integrations/opensolar`), decoupled from the
+  heat-pump engine — OpenSolar's AI ("Ada") does the design; Gary feeds inputs and
+  reads the resulting "system" (size/output/offset/price/CO2). Confirmed read
+  endpoints (`GET /api/orgs/:org_id/systems/…`, bearer + org auth) are implemented;
+  project-creation payload and the auto-design trigger are **stubbed, not guessed**
+  (same discipline as the Spruce client). Config via `OPENSOLAR_API_TOKEN` /
+  `OPENSOLAR_ORG_ID`. Full feasibility + asks: `docs/opensolar-integration.md`.
+  **Open question for OpenSolar support:** is initial/auto-design REST-triggerable,
+  or does it require the browser Studio SDK? That decides how headless Gary can be.
 - **Blocked on Ben — needed to finish Phase 3:**
   1. **MCS031 methodology** — *MCS 031 Issue 4.0* (the report's example outputs are
      captured: 12,165 kWh heating, 2,938 kWh DHW, SPF 3.4) but the method tables
@@ -282,7 +293,12 @@ bump.
    decision open (it can feed Core today and a website *triage* widget later —
    customer-facing *design advice* stays off the table per spec).
 3. ~~Phase 2 follow-up (per-room emitters)~~ — **DONE** this session.
-4. **Infra:** Supabase Pro upgrade + Vercel token/import; apply the pgvector
+4. **OpenSolar (Ben):** provision API access (`OPENSOLAR_API_TOKEN` /
+   `OPENSOLAR_ORG_ID`), confirm the access tier (standard vs Raw Data), and ask
+   OpenSolar whether auto-design is REST-triggerable vs Studio-SDK-only. Then finish
+   the adapter: implement `createProjectFromInput` + `requestAutoDesign` and wire
+   survey/triage data → project → read-back system. See `docs/opensolar-integration.md`.
+5. **Infra:** Supabase Pro upgrade + Vercel token/import; apply the pgvector
    migration to the hosted DB.
-5. **Phase 1:** Spruce API docs → build/typed-test the auth/estimates/jobs client.
-6. Only after the engine is proven: **Phase 4** (Claude reasoning/justifications).
+6. **Phase 1:** Spruce API docs → build/typed-test the auth/estimates/jobs client.
+7. Only after the engine is proven: **Phase 4** (Claude reasoning/justifications).
