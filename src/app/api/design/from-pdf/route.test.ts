@@ -25,12 +25,13 @@ describe("POST /api/design/from-pdf", () => {
       "budget",
     ]);
     expect(body.result.recommended).toBe("sweet_spot");
-    // The provisional-data blockers must be surfaced, not hidden.
+    // The MCS031 provisional blocker must be surfaced; the Stelrad catalogue is
+    // now the engine default, so that blocker should NOT appear.
     const blockers = body.result.reviewFlags
       .filter((f: { severity: string }) => f.severity === "blocker")
       .map((f: { code: string }) => f.code);
     expect(blockers).toContain("mcs031_provisional");
-    expect(blockers).toContain("stelrad_catalogue_pending");
+    expect(blockers).not.toContain("stelrad_catalogue_pending");
   });
 
   it("rejects a request with no file", async () => {

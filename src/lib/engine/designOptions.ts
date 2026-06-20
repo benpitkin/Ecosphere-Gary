@@ -22,6 +22,7 @@ import {
 import { selectHeatPump, type HeatPumpModel } from "@/lib/engine/heatpump";
 import { selectRadiator, type RadiatorModel } from "@/lib/engine/radiator";
 import { modelAt } from "@/lib/engine/catalog/vaillantAroThermPro7kw";
+import { STELRAD_COMPACT_CATALOGUE } from "@/lib/engine/catalog/stelradCompact";
 import {
   provisionalMcs031Calculator,
   type Mcs031Calculator,
@@ -56,8 +57,9 @@ const SURVEY_EMITTER_FLOW_C = 45;
 
 export interface DesignEngineDeps {
   /**
-   * Concrete radiator catalogue (Stelrad standard). Omit → the engine specifies
-   * the required ΔT50 rating per room with the model left "TBC" (+ a blocker flag).
+   * Concrete radiator catalogue. Defaults to the Stelrad Compact catalogue (the
+   * EcoSphere standard). Pass an empty array to force the engine to specify the
+   * required ΔT50 rating with the model left "TBC" (+ a blocker flag) instead.
    */
   radiatorCatalogue?: RadiatorModel[];
   /**
@@ -81,7 +83,8 @@ export function designOptions(
   const { externalDesignTempC, internalDesignTempC } = survey.designConditions;
   const designHeatLossKw = survey.wholeHouse.heatLossW / 1000;
 
-  const catalogue = deps.radiatorCatalogue;
+  const catalogue = deps.radiatorCatalogue ?? STELRAD_COMPACT_CATALOGUE;
+  const haveCatalogue = catalogue.length > 0;
   const candidates = deps.heatPumpCandidates ?? [modelAt(externalDesignTempC)];
   const mcs031 = deps.mcs031 ?? provisionalMcs031Calculator;
 
@@ -103,11 +106,11 @@ export function designOptions(
       severity: "blocker",
     });
   }
-  if (!catalogue) {
+  if (!haveCatalogue) {
     raise({
       code: "stelrad_catalogue_pending",
       message:
-        "No radiator catalogue supplied — new/replacement emitters give the required ΔT50 rating with the model 'TBC'. Provide the Stelrad catalogue to select concrete models.",
+        "No radiator catalogue available — new/replacement emitters give the required ΔT50 rating with the model 'TBC'.",
       severity: "blocker",
     });
   }
@@ -234,7 +237,7 @@ export function designOptions(
         continue;
       }
 
-      if (catalogue) {
+      if (haveCatalogue) {
         const selection = selectRadiator(sized.requiredRatedOutputW, catalogue);
         if (selection) {
           emitters.push({
@@ -242,7 +245,9 @@ export function designOptions(
             floor: room.floor,
             type: "radiator",
             status: sized.status,
-            specification: `${TECHNICAL_DEFAULTS.radiators} ${selection.specification}`,
+            // The catalogue's specification is the source of truth (it already
+            // names the make/model); don't re-prepend the brand.
+            specification: selection.specification,
             requiredOutputW: round(demandW),
             providedOutputW: round(
               outputAtConditionsW(selection.ratedOutputW, flowTempC, roomTempC),

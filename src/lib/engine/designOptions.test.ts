@@ -60,10 +60,23 @@ describe("designOptions against the 3 Orchard Close golden fixture", () => {
     expect(result.reviewFlags.some((f) => f.code === "ufh_not_modelled")).toBe(true);
   });
 
-  it("raises blocker flags for the missing MCS031 method and radiator catalogue", () => {
+  it("raises the MCS031-provisional blocker but selects real Stelrad models by default", () => {
     const blockers = result.reviewFlags.filter((f) => f.severity === "blocker").map((f) => f.code);
     expect(blockers).toContain("mcs031_provisional");
+    // The Stelrad Compact catalogue is the default, so this blocker is gone …
+    expect(blockers).not.toContain("stelrad_catalogue_pending");
+    // … and new/replacement emitters carry concrete Stelrad specs (not "TBC").
+    const sweet = byKey(result, "sweet_spot");
+    const replaced = sweet.emitters.find((e) => e.status !== "keep");
+    expect(replaced?.specification).toMatch(/^Stelrad Compact Type/);
+  });
+
+  it("falls back to 'model TBC' + a blocker flag only when the catalogue is emptied", () => {
+    const noCat = designOptions(threeOrchardCloseSurvey, { radiatorCatalogue: [] });
+    const blockers = noCat.reviewFlags.filter((f) => f.severity === "blocker").map((f) => f.code);
     expect(blockers).toContain("stelrad_catalogue_pending");
+    const replaced = byKey(noCat, "sweet_spot").emitters.find((e) => e.status !== "keep");
+    expect(replaced?.specification).toContain("TBC");
   });
 
   it("carries the ingestion sound-assessment flag through to review", () => {
@@ -96,10 +109,11 @@ describe("designOptions with injected dependencies (real data slots in)", () => 
     { specification: "Type 33 K3 600x1600", ratedOutputW: 5200 },
   ];
 
-  it("selects concrete radiator models when a catalogue is supplied", () => {
+  it("selects concrete radiator models from the supplied catalogue", () => {
     const result = designOptions(threeOrchardCloseSurvey, { radiatorCatalogue: catalogue });
     const study = result.options[1].emitters.find((e) => e.room === "Study" && e.status !== "keep");
-    expect(study?.specification).toMatch(/^Stelrad Type/);
+    // The chosen spec comes verbatim from the injected catalogue.
+    expect(catalogue.map((c) => c.specification)).toContain(study?.specification);
     expect(result.reviewFlags.some((f) => f.code === "stelrad_catalogue_pending")).toBe(false);
   });
 
