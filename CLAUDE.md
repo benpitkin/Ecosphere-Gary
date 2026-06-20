@@ -266,14 +266,19 @@ bump.
   `OPENSOLAR_ORG_ID`. Full feasibility + asks: `docs/opensolar-integration.md`.
   **Open question for OpenSolar support:** is initial/auto-design REST-triggerable,
   or does it require the browser Studio SDK? That decides how headless Gary can be.
-- **Blocked on Ben — needed to finish Phase 3:**
-  1. **MCS031 methodology** — *MCS 031 Issue 4.0* (the report's example outputs are
-     captured: 12,165 kWh heating, 2,938 kWh DHW, SPF 3.4) but the method tables
-     (fixed SPF by flow temp/emitter, HDD demand) + tariff/carbon factors are not
-     available. Compliance-critical; **not** to be guessed.
-  2. **Stelrad catalogue** — rated ΔT50 outputs by model (the selection algorithm
-     takes this as input; only the data is missing). Grant performance table too,
-     for the alt heat pump.
+- **Stelrad catalogue — DONE (found online & wired):** `catalog/stelradCompact.ts`
+  encodes the real Stelrad Compact ΔT50 outputs from the EN442/CETIAT certified
+  W/m figures; it's the engine's default `radiatorCatalogue`, so concrete models are
+  now selected (Grant heat-pump table still wanted for the alt heat pump).
+- **MCS031 — method found & documented (`docs/mcs031-findings.md`); one piece still
+  needed:** Issue 4.0 uses an SPF from **Table 2 (Heat Emitter Guide)** by specific
+  heat loss (W/m²) × flow temp; demand from EPC/degree-day; DHW via a fixed factor
+  (~1.7); output is **kWh** with **£/carbon applied downstream from config** (tariff
+  & grid-carbon are NOT MCS-fixed). The exact **Table 2 SPF grid** is the missing
+  compliance-critical piece — the free MCS 031 v4.0 PDF blocks automated download,
+  so **Ben to drop the PDF in `fixtures/` (or paste Table 2)**, then it's encoded as
+  a `compliant` `Mcs031Calculator`. The Issue 3 SCoP-by-flow table + Heat Emitter
+  Guide oversize factors were captured as reference. **Not guessed.**
 - **Blocked on Ben — infra & Phase 1:** (a) Supabase free 2-project cap is full
   (main ops DB + Core) → Gary's hosted DB needs a Pro upgrade; (b) Vercel deploy
   needs a token or git-import; (c) Spruce API docs/Extended access for the Phase 1
@@ -283,11 +288,11 @@ bump.
 
 ## Next
 
-1. **Finish Phase 3 (engine now wired):** provide (a) the MCS031 Issue 4.0 method +
-   tariff/carbon factors → drop in as a `compliant` `Mcs031Calculator`, replacing
-   `provisionalMcs031Calculator`; and (b) the Stelrad catalogue (ΔT50 outputs) →
-   pass as `radiatorCatalogue` so the engine selects concrete models instead of
-   "model TBC". Both clear their blocker flags automatically. (UFH sizing still not
+1. **Finish Phase 3 (engine wired; Stelrad DONE):** only MCS031 remains — drop the
+   MCS 031 Issue 4.0 PDF in `fixtures/` (or paste Table 2's SPF grid) + confirm the
+   electricity tariff & grid-carbon factor (config, not MCS-fixed); then encode a
+   `compliant` `Mcs031Calculator` replacing `provisionalMcs031Calculator` and the
+   last blocker clears. See `docs/mcs031-findings.md`. (UFH sizing still not
    modelled — flagged `ufh_not_modelled`; decide if/when to add wet-UFH sizing.)
 2. **Direction set (Ben, this session):** Gary stays the **internal design engine**
    (Core only builds proposals — it does *not* produce the three compliant costed
