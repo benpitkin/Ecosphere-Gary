@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { parseSprucePdf } from "@/lib/ingestion/sprucePdf";
 import { designOptions } from "@/lib/engine";
+import { requireApiKey } from "@/lib/apiAuth";
 
 export const dynamic = "force-dynamic";
 // pdf-parse runs on Node (Buffer), not the Edge runtime.
@@ -20,6 +21,9 @@ export const runtime = "nodejs";
  * the page surfaces them; treat the output as provisional, not sign-off-ready.
  */
 export async function POST(request: Request) {
+  const denied = requireApiKey(request);
+  if (denied) return denied;
+
   const form = await request.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) {

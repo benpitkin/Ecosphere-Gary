@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { POST } from "@/app/api/design/from-pdf/route";
@@ -37,5 +37,33 @@ describe("POST /api/design/from-pdf", () => {
   it("rejects a request with no file", async () => {
     const res = await postWith(new FormData());
     expect(res.status).toBe(400);
+  });
+
+  describe("with API-key enforcement enabled", () => {
+    afterEach(() => {
+      delete process.env.GARY_API_KEY;
+    });
+
+    it("returns 401 when the key is missing", async () => {
+      process.env.GARY_API_KEY = "secret";
+      const form = new FormData();
+      form.set("file", new File([pdfBytes()], "x.pdf", { type: "application/pdf" }));
+      const res = await postWith(form);
+      expect(res.status).toBe(401);
+    });
+
+    it("allows the request with the correct key", async () => {
+      process.env.GARY_API_KEY = "secret";
+      const form = new FormData();
+      form.set("file", new File([pdfBytes()], "x.pdf", { type: "application/pdf" }));
+      const res = await POST(
+        new Request("http://localhost/api/design/from-pdf", {
+          method: "POST",
+          body: form,
+          headers: { authorization: "Bearer secret" },
+        }),
+      );
+      expect(res.status).toBe(200);
+    });
   });
 });

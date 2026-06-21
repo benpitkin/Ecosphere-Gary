@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { parseSurveyObject } from "@/contracts/survey";
 import { designOptions } from "@/lib/engine";
+import { requireApiKey } from "@/lib/apiAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,9 @@ export const dynamic = "force-dynamic";
  * treat them as provisional, not sign-off-ready.
  */
 export async function POST(request: Request) {
+  const denied = requireApiKey(request);
+  if (denied) return denied;
+
   let body: unknown;
   try {
     body = await request.json();

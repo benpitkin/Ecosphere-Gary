@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { parseSolarEnquiry } from "@/contracts/solar";
 import { solarPreDesign } from "@/lib/solar";
+import { requireApiKey } from "@/lib/apiAuth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -15,6 +16,9 @@ export const runtime = "nodejs";
  * Output is indicative pre-survey, never a quote.
  */
 export async function POST(request: Request) {
+  const denied = requireApiKey(request);
+  if (denied) return denied;
+
   let body: unknown;
   try {
     body = await request.json();

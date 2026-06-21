@@ -202,6 +202,18 @@ bump.
 - **Current phase:** Phase 0 merged; **Phase 3 engine wired end-to-end &
   fixture-validated** (blocked only on Ben's MCS031 method + Stelrad data, both
   injected). Phase 2 DONE.
+- **Architecture confirmed (Ben): "separate but able to interact".** Gary is a
+  standalone service (own repo/Supabase/Vercel) that other tools call over HTTPS
+  (inbound: `/api/*` versioned contracts) and that reaches out via per-system
+  adapters (outbound: Spruce/OpenSolar/Core). **Inbound API auth now built**
+  (`src/lib/apiAuth.ts`): a shared-secret guard (`requireApiKey`) on every machine
+  endpoint (`/api/design`, `/api/design/from-pdf`, `/api/triage`,
+  `/api/solar/pre-design`; `/api/health` stays open), **env-gated via `GARY_API_KEY`**
+  (off by default so dev/tests/internal pages work; set it once deployed). Two gaps
+  remain to make interaction *live*: (a) Vercel deploy (a real URL), (b) staff-session
+  auth for the browser pages when `GARY_API_KEY` is on (today: keep it unset where
+  staff use the UI, or front with platform SSO). Internal pages: **`/triage`,
+  `/design`, `/solar`** all exist.
 - **Phase 0:** scaffold merged to `main` — versioned `SurveyObject` / `DesignResult`
   zod contracts (three-option invariant enforced via superRefine), `POST /api/design`
   (validates input, 501 until the engine is wired), stubbed ingestion / engine /

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { parseTriageInput } from "@/contracts/triage";
 import { triage } from "@/lib/triage";
+import { requireApiKey } from "@/lib/apiAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,9 @@ export const dynamic = "force-dynamic";
  * used by the staff tool today; a website chatbot could reuse it later.
  */
 export async function POST(request: Request) {
+  const denied = requireApiKey(request);
+  if (denied) return denied;
+
   let body: unknown;
   try {
     body = await request.json();
