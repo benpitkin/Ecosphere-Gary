@@ -266,6 +266,20 @@ bump.
   `OPENSOLAR_ORG_ID`. Full feasibility + asks: `docs/opensolar-integration.md`.
   **Open question for OpenSolar support:** is initial/auto-design REST-triggerable,
   or does it require the browser Studio SDK? That decides how headless Gary can be.
+- **Solar Pre-Design Agent (Ben — BUILT; Gary's first real Claude integration):**
+  the **EcoSphere Solar Pre-Design Agent** sits *upstream of OpenSolar* — turns a
+  raw enquiry into a structured, sales-ready pre-design brief Ben/Natasha review
+  before committing to a full OpenSolar design. Same architecture as the heat-pump
+  side: a **deterministic sizing spine** (`src/lib/solar/sizing.ts`, pure + tested)
+  computes kWp/panels/inverter/battery/generation/self-consumption and the **DNO
+  G98/G99 threshold** (>3.68 kW/phase → G99), with documented UK/SW defaults; the
+  **Claude reasoning layer** (`src/lib/solar/agent.ts`, `@anthropic-ai/sdk`,
+  `claude-opus-4-8`, adaptive thinking, JSON-schema structured output validated by
+  our zod `SolarBrief`) writes the brief *around* those numbers — never inventing
+  them. `POST /api/solar/pre-design` (`SolarEnquiry`→`SolarPreDesign`). Reasoning is
+  **gated on `ANTHROPIC_API_KEY`**: without it the deterministic sizing returns and
+  `brief` is null. **Indicative pre-survey, never a quote** (enforced disclaimer).
+  Contracts in `src/contracts/solar.ts`; Ben's prompt in `src/lib/solar/prompt.ts`.
 - **Stelrad catalogue — DONE (found online & wired):** `catalog/stelradCompact.ts`
   encodes the real Stelrad Compact ΔT50 outputs from the EN442/CETIAT certified
   W/m figures; it's the engine's default `radiatorCatalogue`, so concrete models are
