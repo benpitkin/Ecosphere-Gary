@@ -44,4 +44,10 @@ describe("API-key auth", () => {
     // Different length must not crash timingSafeEqual — it returns 401.
     expect(requireApiKey(req({ "x-api-key": "short" }))?.status).toBe(401);
   });
+
+  it("treats a blank/whitespace key as disabled (and doesn't enforce)", () => {
+    process.env.GARY_API_KEY = "   ";
+    expect(isApiAuthEnabled()).toBe(false);
+    expect(requireApiKey(req())).toBeNull();
+  });
 });

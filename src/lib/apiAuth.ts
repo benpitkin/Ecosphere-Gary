@@ -40,9 +40,32 @@ function presentedKey(request: Request): string | null {
   return x ? x.trim() : null;
 }
 
-/** True when API-key enforcement is switched on (GARY_API_KEY is set). */
+let warnedBlankKey = false;
+
+/**
+ * The configured key, or null when enforcement is off. Warns once if the env var
+ * is present but blank (a misconfiguration that would otherwise silently leave
+ * the engine open while appearing "set").
+ */
+function configuredKey(): string | null {
+  const raw = process.env.GARY_API_KEY;
+  if (raw === undefined) return null; // intentionally off
+  const trimmed = raw.trim();
+  if (trimmed === "") {
+    if (!warnedBlankKey) {
+      console.warn(
+        "[apiAuth] GARY_API_KEY is set but blank — API auth is DISABLED. Unset it intentionally, or give it a value to enforce auth.",
+      );
+      warnedBlankKey = true;
+    }
+    return null;
+  }
+  return trimmed;
+}
+
+/** True when API-key enforcement is switched on (GARY_API_KEY is set & non-blank). */
 export function isApiAuthEnabled(): boolean {
-  return Boolean(process.env.GARY_API_KEY?.trim());
+  return configuredKey() !== null;
 }
 
 /**
@@ -53,7 +76,7 @@ export function isApiAuthEnabled(): boolean {
  *   if (denied) return denied;
  */
 export function requireApiKey(request: Request): NextResponse | null {
-  const expected = process.env.GARY_API_KEY?.trim();
+  const expected = configuredKey();
   if (!expected) return null; // enforcement disabled
 
   const presented = presentedKey(request);

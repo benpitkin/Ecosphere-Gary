@@ -20,17 +20,22 @@ export default function SolarPage() {
     setError(null);
     setResult(null);
     const f = new FormData(e.currentTarget);
-    const numOrUndef = (v: FormDataEntryValue | null) =>
-      v && String(v).trim() !== "" ? Number(v) : undefined;
+    // Only emit a finite number; junk input becomes undefined (omitted), not NaN.
+    const numOrUndef = (v: FormDataEntryValue | null) => {
+      if (!v || String(v).trim() === "") return undefined;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    };
     const str = (v: FormDataEntryValue | null) => (v && String(v).trim() !== "" ? String(v) : undefined);
 
-    // Build a single roof face only if anything about it was entered.
+    // Build a single roof face only if anything about it was entered (a pitch or
+    // area of 0 still counts — `!== undefined`, not truthiness).
     const orientation = str(f.get("orientation"));
     const pitch = numOrUndef(f.get("pitchDeg"));
     const area = numOrUndef(f.get("areaM2"));
     const shading = str(f.get("shading"));
     const roofFaces =
-      orientation || pitch || area || shading
+      orientation !== undefined || pitch !== undefined || area !== undefined || shading !== undefined
         ? [{ orientation: orientation ?? "unknown", pitchDeg: pitch, areaM2: area, shading: shading ?? "unknown" }]
         : [];
 
