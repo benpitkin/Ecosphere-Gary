@@ -222,9 +222,16 @@ bump.
   by default). Largely *optional* now that Gary embeds in Core (internal in-process
   calls need no key); kept for the separate-later path and any externally-exposed
   endpoint. Internal pages: **`/triage`, `/design`, `/solar`** all exist.
-- **Not yet done (review capability):** "Gary assesses my designs & quotes and
-  suggests improvements" is the agreed next *feature* but deliberately deferred —
-  this session only relocated/repackaged the existing engine.
+- **Reviewer capability — BUILT:** "Gary assesses my designs & quotes and suggests
+  improvements." Same architecture: deterministic checks (`src/gary/lib/review/checks.ts`,
+  reuses the EN442 emitter correction + heat-pump cover thresholds) produce the
+  verdict (pass/review/fail) + findings (heat-pump cover, per-room emitter adequacy,
+  MCS031 presence, quote↔design coverage: heat pump / cylinder / radiator counts);
+  the Claude layer (`review/agent.ts`, gated on `ANTHROPIC_API_KEY`) writes
+  improvement suggestions *around* the findings, never re-judging compliance.
+  Contract `src/gary/contracts/review.ts` (`ReviewInput`→`ReviewResult`); orchestrator
+  `reviewDesignQuote`; reference route `POST /api/review`; exported from `@/gary`.
+  A Core-side adapter maps Core's real designs/quotes → `ReviewInput`.
 - **Phase 0:** scaffold merged to `main` — versioned `SurveyObject` / `DesignResult`
   zod contracts (three-option invariant enforced via superRefine), `POST /api/design`
   (validates input, 501 until the engine is wired), stubbed ingestion / engine /

@@ -21,6 +21,7 @@ src/gary/
     ingestion/        Spruce PDF → SurveyObject
     triage/           front-of-funnel triage (+ EPC adapter stub)
     solar/            solar sizing (deterministic) + Claude brief (agent)
+    review/           design & quote reviewer (deterministic checks + Claude suggestions)
     integrations/opensolar/   OpenSolar adapter
     apiAuth.ts        optional shared-secret guard (only if Gary exposes HTTP itself)
     supabase.ts core/ rag/ reasoning/   small helpers/stubs
@@ -42,6 +43,7 @@ import {
   parseSprucePdf,           // Spruce PDF → SurveyObject
   triage,                   // TriageInput → TriageResult
   solarPreDesign,           // SolarEnquiry → SolarPreDesign
+  reviewDesignQuote,        // ReviewInput → ReviewResult (assess a design + quote)
   parseSurveyObject,        // + the other contract parsers
 } from "@/gary";
 ```
@@ -87,4 +89,5 @@ Embedding now does not burn that bridge.
 
 The engine is wired and fixture-validated; the only blocker to fully-compliant
 heat-pump output is the MCS031 Issue 4.0 SPF table (see `docs/mcs031-findings.md`).
-Solar pre-design is built and gated on `ANTHROPIC_API_KEY`. 121 tests green.
+Solar pre-design and the design/quote reviewer are built and gated on
+`ANTHROPIC_API_KEY`. 131 tests green.

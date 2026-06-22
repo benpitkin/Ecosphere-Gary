@@ -18,6 +18,7 @@ export * from "@/gary/contracts/survey";
 export * from "@/gary/contracts/design";
 export * from "@/gary/contracts/triage";
 export * from "@/gary/contracts/solar";
+export * from "@/gary/contracts/review";
 // `YesNoUnknown` is defined identically (zod enum) in both the triage and solar
 // contracts; an explicit re-export resolves the wildcard ambiguity.
 export { YesNoUnknown } from "@/gary/contracts/solar";
@@ -45,6 +46,15 @@ export {
   isSolarReasoningConfigured,
   SOLAR_DISCLAIMER,
 } from "@/gary/lib/solar";
+
+// --- Design & quote reviewer (ReviewInput → ReviewResult) ---
+export {
+  reviewDesignQuote,
+  runReviewChecks,
+  writeReviewSuggestions,
+  isReviewReasoningConfigured,
+  REVIEW_DISCLAIMER,
+} from "@/gary/lib/review";
 
 // --- OpenSolar adapter ---
 export {
