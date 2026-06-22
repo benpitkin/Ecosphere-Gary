@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { parseSprucePdf } from "@/lib/ingestion/sprucePdf";
-import { designOptions } from "@/lib/engine";
-import { requireApiKey } from "@/lib/apiAuth";
+import { parseSprucePdf } from "@/gary/lib/ingestion/sprucePdf";
+import { designOptions } from "@/gary/lib/engine";
+import { requireApiKey } from "@/gary/lib/apiAuth";
 
 export const dynamic = "force-dynamic";
 // pdf-parse runs on Node (Buffer), not the Edge runtime.

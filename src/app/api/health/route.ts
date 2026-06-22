@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { isSupabaseConfigured } from "@/lib/supabase";
-import { isCoreConfigured } from "@/lib/core";
-import { isSolarReasoningConfigured } from "@/lib/solar";
-import { isOpenSolarConfigured } from "@/lib/integrations/opensolar";
-import { isEpcConfigured } from "@/lib/triage/epc";
-import { isApiAuthEnabled } from "@/lib/apiAuth";
-import { OPTION_COUNT, FLOW_TEMPS_C } from "@/config/decisions";
+import { isSupabaseConfigured } from "@/gary/lib/supabase";
+import { isCoreConfigured } from "@/gary/lib/core";
+import { isSolarReasoningConfigured } from "@/gary/lib/solar";
+import { isOpenSolarConfigured } from "@/gary/lib/integrations/opensolar";
+import { isEpcConfigured } from "@/gary/lib/triage/epc";
+import { isApiAuthEnabled } from "@/gary/lib/apiAuth";
+import { OPTION_COUNT, FLOW_TEMPS_C } from "@/gary/config/decisions";
 
 export const dynamic = "force-dynamic";
 

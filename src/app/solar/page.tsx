@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { SolarPreDesign } from "@/contracts/solar";
+import type { SolarPreDesign } from "@/gary/contracts/solar";
 
 const sev: Record<string, string> = {
   info: "#2563eb",

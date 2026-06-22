@@ -202,18 +202,29 @@ bump.
 - **Current phase:** Phase 0 merged; **Phase 3 engine wired end-to-end &
   fixture-validated** (blocked only on Ben's MCS031 method + Stelrad data, both
   injected). Phase 2 DONE.
-- **Architecture confirmed (Ben): "separate but able to interact".** Gary is a
-  standalone service (own repo/Supabase/Vercel) that other tools call over HTTPS
-  (inbound: `/api/*` versioned contracts) and that reaches out via per-system
-  adapters (outbound: Spruce/OpenSolar/Core). **Inbound API auth now built**
-  (`src/lib/apiAuth.ts`): a shared-secret guard (`requireApiKey`) on every machine
-  endpoint (`/api/design`, `/api/design/from-pdf`, `/api/triage`,
-  `/api/solar/pre-design`; `/api/health` stays open), **env-gated via `GARY_API_KEY`**
-  (off by default so dev/tests/internal pages work; set it once deployed). Two gaps
-  remain to make interaction *live*: (a) Vercel deploy (a real URL), (b) staff-session
-  auth for the browser pages when `GARY_API_KEY` is on (today: keep it unset where
-  staff use the UI, or front with platform SSO). Internal pages: **`/triage`,
-  `/design`, `/solar`** all exist.
+- **ARCHITECTURE DIRECTION CHANGED (Ben): build Gary *inside Core*, not as a
+  separate service** — Core already has a database, Gary's job (assessing
+  designs/quotes) needs Core's data, and one codebase ships faster solo. This
+  supersedes the original "own repo/Supabase/Vercel" plan and **removes the
+  second-database blocker**. Decision is reversible: the engine is structured so
+  it can be split back out later (see "import-ready" below).
+- **Repo restructured for embedding (import-ready):** all portable code now lives
+  under **`src/gary/`** (`contracts/`, `config/`, `lib/`, `fixtures/`) with a single
+  public barrel **`src/gary/index.ts`** — a host (Core) copies that one folder and
+  imports from `@/gary`. `src/app/` (Next routes + staff pages) is this repo's own
+  glue and is NOT part of the portable surface (Core re-creates thin routes/server
+  actions calling `@/gary`). Full guide: **`docs/embedding-in-core.md`**.
+  `src/gary/index.test.ts` locks the public surface. (Note: I cannot edit the Core
+  repo from this session — scope is `benpitkin/ecosphere-gary` only — so the actual
+  lift into Core happens in a Core-scoped session.)
+- **Inbound API auth built** (`src/gary/lib/apiAuth.ts`): a shared-secret guard
+  (`requireApiKey`) on every machine endpoint, **env-gated via `GARY_API_KEY`** (off
+  by default). Largely *optional* now that Gary embeds in Core (internal in-process
+  calls need no key); kept for the separate-later path and any externally-exposed
+  endpoint. Internal pages: **`/triage`, `/design`, `/solar`** all exist.
+- **Not yet done (review capability):** "Gary assesses my designs & quotes and
+  suggests improvements" is the agreed next *feature* but deliberately deferred —
+  this session only relocated/repackaged the existing engine.
 - **Phase 0:** scaffold merged to `main` — versioned `SurveyObject` / `DesignResult`
   zod contracts (three-option invariant enforced via superRefine), `POST /api/design`
   (validates input, 501 until the engine is wired), stubbed ingestion / engine /

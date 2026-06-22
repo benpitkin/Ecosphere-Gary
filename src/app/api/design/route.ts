@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { parseSurveyObject } from "@/contracts/survey";
-import { designOptions } from "@/lib/engine";
-import { requireApiKey } from "@/lib/apiAuth";
+import { parseSurveyObject } from "@/gary/contracts/survey";
+import { designOptions } from "@/gary/lib/engine";
+import { requireApiKey } from "@/gary/lib/apiAuth";
 
 export const dynamic = "force-dynamic";
 

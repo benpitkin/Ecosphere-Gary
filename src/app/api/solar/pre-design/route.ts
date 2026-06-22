@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { parseSolarEnquiry } from "@/contracts/solar";
-import { solarPreDesign } from "@/lib/solar";
-import { requireApiKey } from "@/lib/apiAuth";
+import { parseSolarEnquiry } from "@/gary/contracts/solar";
+import { solarPreDesign } from "@/gary/lib/solar";
+import { requireApiKey } from "@/gary/lib/apiAuth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { TriageResult } from "@/contracts/triage";
+import type { TriageResult } from "@/gary/contracts/triage";
 
 const label: Record<string, string> = {
   book_survey: "Book a survey",

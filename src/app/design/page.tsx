@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { DesignResult, DesignOption } from "@/contracts/design";
-import type { SurveyObject } from "@/contracts/survey";
+import type { DesignResult, DesignOption } from "@/gary/contracts/design";
+import type { SurveyObject } from "@/gary/contracts/survey";
 
 const sev: Record<string, string> = {
   info: "#2563eb",

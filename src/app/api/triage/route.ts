@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { parseTriageInput } from "@/contracts/triage";
-import { triage } from "@/lib/triage";
-import { requireApiKey } from "@/lib/apiAuth";
+import { parseTriageInput } from "@/gary/contracts/triage";
+import { triage } from "@/gary/lib/triage";
+import { requireApiKey } from "@/gary/lib/apiAuth";
 
 export const dynamic = "force-dynamic";
 
