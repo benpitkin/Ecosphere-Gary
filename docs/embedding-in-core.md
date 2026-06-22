@@ -22,6 +22,7 @@ src/gary/
     triage/           front-of-funnel triage (+ EPC adapter stub)
     solar/            solar sizing (deterministic) + Claude brief (agent)
     review/           design & quote reviewer (deterministic checks + Claude suggestions)
+    ask/              technical Q&A (grounded in EcoSphere rules + Claude)
     integrations/opensolar/   OpenSolar adapter
     apiAuth.ts        optional shared-secret guard (only if Gary exposes HTTP itself)
     supabase.ts core/ rag/ reasoning/   small helpers/stubs
@@ -89,5 +90,15 @@ Embedding now does not burn that bridge.
 
 The engine is wired and fixture-validated; the only blocker to fully-compliant
 heat-pump output is the MCS031 Issue 4.0 SPF table (see `docs/mcs031-findings.md`).
-Solar pre-design and the design/quote reviewer are built and gated on
-`ANTHROPIC_API_KEY`. 131 tests green.
+Solar pre-design, the design/quote reviewer and ask-Gary (technical Q&A) are
+built and gated on `ANTHROPIC_API_KEY`. 137 tests green.
+
+## The Ask-Gary chat widget (Core's bottom-right assistant)
+
+To replace Core's bottom-right AI assistant with Gary: copy
+`src/app/_components/AskGaryWidget.tsx` into Core's app and mount it once in
+Core's root layout (`<AskGaryWidget />`). It's self-contained (React + the
+`AskResult` type from `@/gary`) and talks to `POST /api/ask`; set the `endpoint`
+prop if Core mounts the ask route at a different path. The launcher icon is a
+"little man" SVG. Needs `ANTHROPIC_API_KEY` set server-side (the route returns a
+clean 503 otherwise, which the widget surfaces).

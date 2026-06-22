@@ -244,6 +244,18 @@ bump.
   (`AskInput`→`AskResult`); orchestrator `askGary` (`src/gary/lib/ask/`); exported
   from `@/gary`. **Both interfaces:** `POST /api/ask` + an internal chat page at
   **`/ask`** (linked from the home page).
+- **Ask-Gary chat widget (for Core's bottom-right corner) — BUILT:** Ben wants Gary
+  to *replace Core's existing bottom-right AI assistant*, with a **little-man icon**.
+  Built as a self-contained floating chat widget
+  (`src/app/_components/AskGaryWidget.tsx`): launcher = a little-man SVG silhouette,
+  opens a chat panel backed by `POST /api/ask`, multi-turn, shows confidence +
+  sources, handles the no-key/error cases. Mounted globally in
+  `src/app/layout.tsx` so it appears on every Gary page as the reference
+  implementation. **Portable on purpose** (only React + the `AskResult` type) so
+  Core copies the one file into its root layout and points `endpoint` at Gary's
+  `/api/ask` (or an in-process route once embedded). **The actual swap in Core
+  must happen in a Core-scoped session** — this session is scoped to
+  `benpitkin/ecosphere-gary` only and cannot edit the Core repo.
 - **Phase 0:** scaffold merged to `main` — versioned `SurveyObject` / `DesignResult`
   zod contracts (three-option invariant enforced via superRefine), `POST /api/design`
   (validates input, 501 until the engine is wired), stubbed ingestion / engine /
