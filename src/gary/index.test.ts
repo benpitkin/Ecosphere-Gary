@@ -14,6 +14,8 @@ describe("@/gary public surface", () => {
     expect(typeof gary.parseSprucePdf).toBe("function");
     expect(typeof gary.reviewDesignQuote).toBe("function");
     expect(typeof gary.runReviewChecks).toBe("function");
+    expect(typeof gary.askGary).toBe("function");
+    expect(typeof gary.noKnowledgeBase).toBe("function");
   });
 
   it("exposes the contract parsers", () => {

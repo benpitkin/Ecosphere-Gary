@@ -232,6 +232,18 @@ bump.
   Contract `src/gary/contracts/review.ts` (`ReviewInput`→`ReviewResult`); orchestrator
   `reviewDesignQuote`; reference route `POST /api/review`; exported from `@/gary`.
   A Core-side adapter maps Core's real designs/quotes → `ReviewInput`.
+- **Ask-Gary (technical Q&A) — BUILT:** ask Gary technical questions (heat-pump
+  design, emitter sizing, MCS, EcoSphere standards). Claude-powered, gated on
+  `ANTHROPIC_API_KEY`. **Grounded in EcoSphere's own design rules today**
+  (`src/gary/lib/ask/grounding.ts` — a faithful summary of the rules the engine
+  encodes, so answers are correct even with the KB empty), and **ready to pull
+  from the RAG knowledge base** via an injectable `KnowledgeRetriever` (default
+  `noKnowledgeBase` returns nothing until Phase 5 wires real pgvector retrieval —
+  not guessed). Multi-turn (history), optional pasted `jobContext`, structured
+  output (answer + confidence + citations). Contract `src/gary/contracts/ask.ts`
+  (`AskInput`→`AskResult`); orchestrator `askGary` (`src/gary/lib/ask/`); exported
+  from `@/gary`. **Both interfaces:** `POST /api/ask` + an internal chat page at
+  **`/ask`** (linked from the home page).
 - **Phase 0:** scaffold merged to `main` — versioned `SurveyObject` / `DesignResult`
   zod contracts (three-option invariant enforced via superRefine), `POST /api/design`
   (validates input, 501 until the engine is wired), stubbed ingestion / engine /

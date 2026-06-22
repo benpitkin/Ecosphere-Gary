@@ -16,6 +16,11 @@ const tools = [
     title: "Solar pre-design",
     desc: "Enquiry → indicative solar pre-design brief (sizing, generation, DNO/G99) to review before a full OpenSolar design.",
   },
+  {
+    href: "/ask",
+    title: "Ask Gary",
+    desc: "Technical Q&A — heat-pump design, emitter sizing, MCS rules, EcoSphere standards. Grounded in EcoSphere's design rules.",
+  },
 ];
 
 export default function Home() {
